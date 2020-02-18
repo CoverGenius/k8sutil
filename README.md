@@ -9,7 +9,10 @@ This is a command line tool with subcommands for creating and interpreting kuber
 
 ## Available Subcommands
 ### Display the current context, current namespace, and current cluster configured by your Kubernetes Config File
-TODO: Documentation
+`k8sutil get-context` will read from the `KUBECONFIG` environment variable if it is set, otherwise it is read from `~/.kube/config`.
+
+![](screenshots/get-context_example_run)
+
 ### Easily switch current context and namespace for `kubectl`
 TODO: Documentation
 ### Summarise Kubernetes Resource Information (remote or defined locally in YAMLs)
