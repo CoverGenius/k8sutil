@@ -111,29 +111,30 @@ PersistentVolumeClaim:
 			// put them into the group by kind
 		}
 
-		if len(args) == 0 || args[0] != "-" {
-			fileNames, err := AggregateFiles(args, directories)
-			if err != nil {
-				log.Fatal(err)
+		if !remote {
+			if len(args) == 0 || args[0] != "-" {
+				fileNames, err := AggregateFiles(args, directories)
+				if err != nil {
+					log.Fatal(err)
+				}
+				resources, err = deserialise(fileNames)
+				if err != nil {
+					log.Fatal(err)
+				}
+			} else if len(args) == 1 && args[0] == "-" {
+				var data []byte
+				data, err := ioutil.ReadAll(os.Stdin)
+				if err != nil {
+					log.Fatal(err)
+				}
+				resources, err = deserialiseBytes(data, "stdin")
+				if err != nil {
+					log.Fatal(err)
+				}
+			} else {
+				cmd.Usage()
+				os.Exit(1)
 			}
-			resources, err = deserialise(fileNames)
-			if err != nil {
-				log.Fatal(err)
-			}
-		} else if len(args) == 1 && args[0] == "-" {
-			var data []byte
-			data, err := ioutil.ReadAll(os.Stdin)
-			if err != nil {
-				log.Fatal(err)
-			}
-			resources, err = deserialiseBytes(data, "stdin")
-			if err != nil {
-				log.Fatal(err)
-			}
-
-		} else {
-			cmd.Usage()
-			os.Exit(1)
 		}
 		// loop through slice and print relevant information
 		if groupByResourceKind {

@@ -1,6 +1,8 @@
 package kubeapi
 
 import (
+	"errors"
+	"fmt"
 	"reflect"
 
 	"github.com/rdowavic/k8sutil/utils"
@@ -101,7 +103,7 @@ func GetResources(clientset *kubernetes.Clientset, namespace string) ([]interfac
 			listMethod := ResourceInterface.MethodByName("List")
 			// check if that was a fail
 			if !listMethod.IsValid() {
-				continue
+				return nil, errors.New("There has been a change in the ClientSet API")
 			}
 			listAndErr := listMethod.Call(options)
 			err := listAndErr[1].Interface()
@@ -112,11 +114,11 @@ func GetResources(clientset *kubernetes.Clientset, namespace string) ([]interfac
 			list := listAndErr[0].Elem() // we know this will work because out(0).Kind == Ptr
 			// check underlying is a struct actually
 			if list.Kind() != reflect.Struct {
-				continue
+				return nil, errors.New("There has been a change in the ClientSet API")
 			}
 			items := list.FieldByName("Items")
 			if !items.IsValid() || items.Kind() != reflect.Slice {
-				continue
+				return nil, errors.New("There has been a change in the ClientSet API")
 			}
 			for k := 0; k < items.Len(); k++ {
 				if !items.Index(k).CanInterface() {
@@ -126,6 +128,9 @@ func GetResources(clientset *kubernetes.Clientset, namespace string) ([]interfac
 			}
 		}
 
+	}
+	if len(resources) == 0 {
+		return resources, errors.New(fmt.Sprintf("No resources found under the namespace %s", namespace))
 	}
 	return resources, nil
 }
