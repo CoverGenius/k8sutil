@@ -85,7 +85,6 @@ var workonCmd = &cobra.Command{
 		if err != nil {
 			log.Fatal(err)
 		}
-		fmt.Println("The write was successful!")
 	},
 }
 
