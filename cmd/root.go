@@ -26,8 +26,8 @@ var (
 )
 
 var RootCmd = &cobra.Command{
-	Use:   "xops",
-	Short: "XCover operations CLI",
+	Use:   "k8sutil",
+	Short: "Command-line utility for working with kubernetes resources",
 }
 
 // Execute is called by main.main(). It only needs to happen once to the rootCmd.
