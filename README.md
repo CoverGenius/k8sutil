@@ -1,6 +1,19 @@
 # k8sutil
 This is a command line tool with subcommands for creating and interpreting kubernetes objects.
 
+## How to use
+1. Clone this repo
+2. cd into the newly created k8sutil subdirectory
+3. `go build`
+4. Run `./k8sutil --help` to show the available subcommands
+
+## Available Subcommands
+-   summarise TODO: Documentation
+-   lint TODO: Documentation
+-   workon TODO: Documentation
+-   show-dependencies TODO: Documentation
+-   get-context TODO: Documentation
+
 ### TODO
 - The utils package is kind of a mess, want to make subdirectories based on each subcommand?
 - I eventually want to make the linter extendable. You should be able to progamatically invoke it instead of just as a command-line tool, and you should be able to add your own custom requirements. I like this a lot because since my tool relies onfreehand boolean functions, your tests can literally be whatever you want. You aren't restricted to just set, equal, greaterthan field checks like in kube-lint. This would be really nice. There is a lot more flexibility with this. For example, you could check that a string field belongs to a collection of custom defined strings in your program. Maybe there's not much of a use case for it, but at least the option is there.
