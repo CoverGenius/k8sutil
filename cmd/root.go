@@ -8,21 +8,7 @@ import (
 )
 
 var (
-	logLevel    int
-	directory   string
-	pattern     string
-	template    string
-	sendTo      string
-	sendFrom    string
-	smtpServer  string
-	elkURL      string
-	elkUsername string
-	elkPassword string
-	file        string
-	secret      string
-	tag         string
-	index       string
-	noinput     bool
+	logLevel int
 )
 
 var RootCmd = &cobra.Command{
