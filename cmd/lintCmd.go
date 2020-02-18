@@ -28,7 +28,7 @@ var (
 )
 
 var lintCmd = &cobra.Command{
-	Use:   "lint-k8s <file>*",
+	Use:   "lint <file>*",
 	Short: "Lint YAML file(s) against a set of predefined kubernetes best practices",
 	Run: func(cmd *cobra.Command, args []string) {
 		// check that the flags they set make sense
@@ -64,9 +64,6 @@ var lintCmd = &cobra.Command{
 				// get all the yaml derived kubernetes objects out
 				// and store it in a slice
 				yamlObjects = append(yamlObjects, lint.AttachMetaData(buffer, yamlFilePath)...)
-
-				// finally lint it with service/k8s-lint
-				// service.ValidateYamlFile(buffer, filepath.Base(yamlFilePath))
 			}
 		} else {
 			var data []byte
@@ -181,7 +178,7 @@ func nameFixed(fileName string) string {
 }
 
 func init() {
-	RootCmd.AddCommand()
+	RootCmd.AddCommand(lintCmd)
 	lintCmd.Flags().StringSliceVarP(&directories, "directories", "d", []string{}, "A comma-separated list of directories to recursively search for YAML documents")
 	lintCmd.Flags().BoolVarP(&standaloneLintMode, "standalone-mode", "", false, "Standalone mode - only run lint on the specified resources and skips any dependency checks")
 	lintCmd.Flags().BoolVar(&fix, "fix", false, "apply fixes after identifying errors, where possible")

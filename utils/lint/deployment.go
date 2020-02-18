@@ -59,7 +59,8 @@ func DeploymentRules(resource *YamlDerivedKubernetesResource) []*Rule {
 			ID:      DEPLOYMENT_CONTAINER_EXISTS_LIVENESS,
 			Prereqs: []RuleID{POD_NON_ZERO_CONTAINERS},
 			Condition: func() bool {
-				return deployment.Spec.Template.Spec.Containers[0].LivenessProbe != nil
+				return deployment.Spec.Template.Spec.Containers[0].LivenessProbe != nil &&
+					deployment.Spec.Template.Spec.Containers[0].LivenessProbe.Handler.HTTPGet != nil
 			},
 			Message:   "Expected declaration of liveness probe for the container (livenessProbe)",
 			Level:     ERROR,
@@ -70,7 +71,8 @@ func DeploymentRules(resource *YamlDerivedKubernetesResource) []*Rule {
 			ID:      DEPLOYMENT_CONTAINER_EXISTS_READINESS,
 			Prereqs: []RuleID{POD_NON_ZERO_CONTAINERS},
 			Condition: func() bool {
-				return deployment.Spec.Template.Spec.Containers[0].ReadinessProbe != nil
+				return deployment.Spec.Template.Spec.Containers[0].ReadinessProbe != nil &&
+					deployment.Spec.Template.Spec.Containers[0].ReadinessProbe.Handler.HTTPGet != nil
 			},
 			Message:   "Expected declaration of readiness probe for the container (readinessProbe)",
 			Level:     ERROR,
