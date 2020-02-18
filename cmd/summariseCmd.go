@@ -4,25 +4,25 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"io/ioutil"
-	"os"
-	"path/filepath"
-	"reflect"
-	"strconv"
-	"strings"
-
-	"bitbucket.org/welovetravel/xops/service"
-	"bitbucket.org/welovetravel/xops/service/kubeapi"
 	"github.com/fatih/color"
+	"github.com/rdowavic/k8sutil/utils"
+	"github.com/rdowavic/k8sutil/utils/kubeapi"
+	"github.com/rdowavic/k8sutil/utils/lint"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	yaml "gopkg.in/yaml.v2"
+	"io/ioutil"
 	meta "k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/tools/clientcmd"
+	"os"
+	"path/filepath"
+	"reflect"
+	"strconv"
+	"strings"
 )
 
 type Colour func(...interface{}) string
@@ -49,11 +49,11 @@ var (
 	boldRed   Colour = color.New(color.FgRed, color.Bold).SprintFunc()
 )
 
-var resourcesGroupedByKind map[string][]*service.ResourceInfo
-var resourcesGroupedByLabel map[string][]*service.ResourceInfo
+var resourcesGroupedByKind map[string][]*utils.ResourceInfo
+var resourcesGroupedByLabel map[string][]*utils.ResourceInfo
 
-var serviceSummariseK8sCmd = &cobra.Command{
-	Use:   "summarise-k8s <file>*|-",
+var summariseCmd = &cobra.Command{
+	Use:   "summarise <file>*|-",
 	Short: "Provide summary of all kubernetes resources in the given files and directories (also understands stdin)",
 	Long: `An example of the default output format of this command is
 $ xops service summarise-k8s -d ../xcover-kubernetes/xcover-batch-app/
@@ -87,7 +87,7 @@ PersistentVolumeClaim:
 	- redis-data in xcover-batch-production
 
 `,
-	Aliases: []string{"summarize-k8s"},
+	Aliases: []string{"summarize"},
 	Run: func(cmd *cobra.Command, args []string) {
 		// try to do something random with the kubernetes API
 		if remote && namespace == "" {
@@ -97,7 +97,7 @@ PersistentVolumeClaim:
 			os.Exit(1)
 		}
 
-		var resources []*service.ResourceInfo
+		var resources []*utils.ResourceInfo
 		// parse args and directories and get a []runtime.Object
 		if remote && namespace != "" {
 			// create a config and use the kubeapi package to retrieve the resources in that namespace
@@ -153,7 +153,7 @@ PersistentVolumeClaim:
 	},
 }
 
-func aggregateLabels(resources []*service.ResourceInfo) map[string][]string {
+func aggregateLabels(resources []*utils.ResourceInfo) map[string][]string {
 	m := make(map[string][]string)
 	for _, resource := range resources {
 		if resource.Labels == nil {
@@ -175,7 +175,7 @@ func PrintLabels(labels map[string][]string) {
 	}
 }
 
-func PrintFilteredByKind(resources []*service.ResourceInfo, kind string) {
+func PrintFilteredByKind(resources []*utils.ResourceInfo, kind string) {
 	filtered := GetResourcesGroupedByKind(resources)[kind]
 	for _, resource := range filtered {
 		fmt.Printf("%s", yellow(resource.Name))
@@ -189,7 +189,7 @@ func PrintFilteredByKind(resources []*service.ResourceInfo, kind string) {
 	}
 }
 
-func PrintDefault(resources []*service.ResourceInfo) {
+func PrintDefault(resources []*utils.ResourceInfo) {
 	for i, resource := range resources {
 		if resource.Name == "" && resource.Namespace == "" && resource.Kind == "" {
 			fmt.Printf("Resource %d: %s\n\n", i, boldRed("No Information Available"))
@@ -223,7 +223,7 @@ func PrintDefault(resources []*service.ResourceInfo) {
 	}
 }
 
-func PrintGroupByKind(resources []*service.ResourceInfo) {
+func PrintGroupByKind(resources []*utils.ResourceInfo) {
 	for kind, list := range GetResourcesGroupedByKind(resources) {
 		if kind == "" {
 			kind = "Missing Kind"
@@ -243,7 +243,7 @@ func PrintGroupByKind(resources []*service.ResourceInfo) {
 	}
 }
 
-func PrintGroupByLabel(resources []*service.ResourceInfo) {
+func PrintGroupByLabel(resources []*utils.ResourceInfo) {
 	labelMap := GetResourcesGroupedByLabel(resources)
 	for label, list := range labelMap {
 		fmt.Printf("Label %s:\n", nameStyle(label))
@@ -271,7 +271,7 @@ func PrintGroupByLabel(resources []*service.ResourceInfo) {
 	fmt.Println()
 }
 
-func GetResourcesGroupedByLabel(resources []*service.ResourceInfo) map[string][]*service.ResourceInfo {
+func GetResourcesGroupedByLabel(resources []*utils.ResourceInfo) map[string][]*utils.ResourceInfo {
 	if len(resourcesGroupedByLabel) != 0 {
 		return resourcesGroupedByLabel
 	}
@@ -293,12 +293,12 @@ func GetResourcesGroupedByLabel(resources []*service.ResourceInfo) map[string][]
 	return resourcesGroupedByLabel
 }
 
-func GetResourcesGroupedByKind(resources []*service.ResourceInfo) map[string][]*service.ResourceInfo {
+func GetResourcesGroupedByKind(resources []*utils.ResourceInfo) map[string][]*utils.ResourceInfo {
 	if len(resourcesGroupedByKind) != 0 {
 		// then it's already been populated
 		return resourcesGroupedByKind
 	}
-	m := make(map[string][]*service.ResourceInfo)
+	m := make(map[string][]*utils.ResourceInfo)
 	for _, resource := range resources {
 		kind := resource.Kind
 		// if m[kind] doesn't exist, add an empty thing
@@ -314,8 +314,8 @@ func GetResourcesGroupedByKind(resources []*service.ResourceInfo) map[string][]*
 	return m
 }
 
-func Convert(resource runtime.Object, b []byte, fileName string) (*service.ResourceInfo, error) {
-	r := &service.ResourceInfo{FileName: fileName}
+func Convert(resource runtime.Object, b []byte, fileName string) (*utils.ResourceInfo, error) {
+	r := &utils.ResourceInfo{FileName: fileName}
 	m := make(map[interface{}]interface{})
 	err := yaml.Unmarshal(b, &m)
 	r.Origin = m
@@ -338,21 +338,21 @@ func Convert(resource runtime.Object, b []byte, fileName string) (*service.Resou
 }
 
 func init() {
-	resourcesGroupedByKind = make(map[string][]*service.ResourceInfo)
-	resourcesGroupedByLabel = make(map[string][]*service.ResourceInfo)
-	serviceCmd.AddCommand(serviceSummariseK8sCmd)
-	serviceSummariseK8sCmd.Flags().StringSliceVarP(&directories, "directories", "d", nil, "A comma-separated list of directories to recursively search for YAML documents")
-	serviceSummariseK8sCmd.Flags().BoolVarP(&groupByResourceKind, "group-by-resource-kind", "g", false, "Group output by resource kind")
-	serviceSummariseK8sCmd.Flags().BoolVarP(&showFilePath, "show-file", "f", false, "Show which file this resource was read from")
-	serviceSummariseK8sCmd.Flags().StringVarP(&kind, "kind", "k", "", "Only show resources of a certain kind, eg Deployment.")
-	serviceSummariseK8sCmd.Flags().BoolVarP(&remote, "remote", "r", false, "Get resources from remote cluster")
-	serviceSummariseK8sCmd.Flags().BoolVarP(&showLabels, "show-labels", "l", false, "Show labels associated with the resource")
-	serviceSummariseK8sCmd.Flags().StringVarP(&namespace, "namespace", "n", "", "Show resources from only this namespace")
+	resourcesGroupedByKind = make(map[string][]*utils.ResourceInfo)
+	resourcesGroupedByLabel = make(map[string][]*utils.ResourceInfo)
+	RootCmd.AddCommand(summariseCmd)
+	summariseCmd.Flags().StringSliceVarP(&directories, "directories", "d", nil, "A comma-separated list of directories to recursively search for YAML documents")
+	summariseCmd.Flags().BoolVarP(&groupByResourceKind, "group-by-resource-kind", "g", false, "Group output by resource kind")
+	summariseCmd.Flags().BoolVarP(&showFilePath, "show-file", "f", false, "Show which file this resource was read from")
+	summariseCmd.Flags().StringVarP(&kind, "kind", "k", "", "Only show resources of a certain kind, eg Deployment.")
+	summariseCmd.Flags().BoolVarP(&remote, "remote", "r", false, "Get resources from remote cluster")
+	summariseCmd.Flags().BoolVarP(&showLabels, "show-labels", "l", false, "Show labels associated with the resource")
+	summariseCmd.Flags().StringVarP(&namespace, "namespace", "n", "", "Show resources from only this namespace")
 }
 
 // This takes a list of filenames and returns a list of kubernetes runtime Objects
-func deserialise(fileNames []string) ([]*service.ResourceInfo, error) {
-	var resources []*service.ResourceInfo
+func deserialise(fileNames []string) ([]*utils.ResourceInfo, error) {
+	var resources []*utils.ResourceInfo
 	// turn the file into bytes, split by ---
 	for _, yamlFileName := range fileNames {
 		yamlFilePath, _ := filepath.Abs(yamlFileName)
@@ -372,17 +372,17 @@ func deserialise(fileNames []string) ([]*service.ResourceInfo, error) {
 }
 
 // This takes a byte array and returns a list of kubernetes runtime objects
-func deserialiseBytes(yamlContent []byte, fileName string) ([]*service.ResourceInfo, error) {
+func deserialiseBytes(yamlContent []byte, fileName string) ([]*utils.ResourceInfo, error) {
 	// this is the resultant resource list
-	var resources []*service.ResourceInfo
-	lineBreak := service.DetectLineBreak(yamlContent)
+	var resources []*utils.ResourceInfo
+	lineBreak := lint.DetectLineBreak(yamlContent)
 	serialisedResources := bytes.Split(yamlContent, []byte(lineBreak+"---"+lineBreak))
 	for _, resource := range serialisedResources {
 		if strings.Trim(string(resource), lineBreak) == "" {
 			continue
 		}
 		deserialised, _, err := scheme.Codecs.UniversalDeserializer().Decode(resource, nil, nil)
-		var result *service.ResourceInfo
+		var result *utils.ResourceInfo
 		if err != nil {
 			result, err = MakeResourceInformation(resource, fileName)
 			if err != nil {
@@ -417,7 +417,7 @@ func deserialiseBytes(yamlContent []byte, fileName string) ([]*service.ResourceI
 	return resources, nil
 }
 
-func MakeResourceInformation(b []byte, fileName string) (*service.ResourceInfo, error) {
+func MakeResourceInformation(b []byte, fileName string) (*utils.ResourceInfo, error) {
 	// this will be a single yaml like
 	//apiVersion: apiextensions.k8s.io/v1beta1
 	//kind: CustomResourceDefinition
@@ -434,7 +434,7 @@ func MakeResourceInformation(b []byte, fileName string) (*service.ResourceInfo, 
 	//    kind: HostEndpoint
 	//    plural: hostendpoints
 	//    singular: hostendpoint
-	r := &service.ResourceInfo{FileName: fileName}
+	r := &utils.ResourceInfo{FileName: fileName}
 	m := make(map[interface{}]interface{})
 	err := yaml.Unmarshal(b, &m)
 	r.Origin = m

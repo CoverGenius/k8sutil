@@ -1,4 +1,4 @@
-package servicetest
+package tests
 
 import (
 	lint "github.com/rdowavic/k8sutil/utils/lint"

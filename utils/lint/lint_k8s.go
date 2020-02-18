@@ -1,4 +1,4 @@
-package utils
+package lint
 
 import (
 	"bytes"
@@ -8,7 +8,6 @@ import (
 
 	"github.com/instrumenta/kubeval/kubeval"
 	"github.com/instrumenta/kubeval/log"
-	"github.com/rdowavic/k8sutil/utils/rulesorter"
 	appsv1 "k8s.io/api/apps/v1"
 	batchV1 "k8s.io/api/batch/v1"
 	batchV1beta1 "k8s.io/api/batch/v1beta1"
@@ -26,7 +25,7 @@ var errorFixes []string
 
 func GetErrorFixes() []string { return errorFixes }
 
-func isImageAllowed(image string) bool {
+func IsImageAllowed(image string) bool {
 	for _, r := range ALLOWED_DOCKER_REGISTRIES {
 		if strings.HasPrefix(image, r) {
 			return true
@@ -94,7 +93,7 @@ func Lint(k8sObjects []*YamlDerivedKubernetesResource, standaloneLintMode bool, 
 	var exitCode Level = SUCCESS
 	for _, ruleList := range ruleGroups {
 		// create the data structure!!
-		ruleSorter := rulesorter.New(ruleList)
+		ruleSorter := NewRuleSorter(ruleList)
 		// retrieve each rule as long as the ruleSorter isn't exhausted
 		for !ruleSorter.IsEmpty() {
 			rule := ruleSorter.PopNextAvailable()

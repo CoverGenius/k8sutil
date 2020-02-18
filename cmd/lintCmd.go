@@ -9,11 +9,9 @@ import (
 	"regexp"
 	"strings"
 
-	"bitbucket.org/welovetravel/xops/service"
-	"bitbucket.org/welovetravel/xops/service/lint"
 	"github.com/fatih/color"
 	multierror "github.com/hashicorp/go-multierror"
-	"github.com/rdowavic/k8sutil/lint"
+	"github.com/rdowavic/k8sutil/utils/lint"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -29,7 +27,7 @@ var (
 	report             bool
 )
 
-var serviceLintK8sCmd = &cobra.Command{
+var lintCmd = &cobra.Command{
 	Use:   "lint-k8s <file>*",
 	Short: "Lint YAML file(s) against a set of predefined kubernetes best practices",
 	Run: func(cmd *cobra.Command, args []string) {
@@ -62,10 +60,10 @@ var serviceLintK8sCmd = &cobra.Command{
 				}
 				// bytes array -> bytes.Buffer
 				buffer := bytes.NewBuffer(yamlContent)
-				service.KubevalLint(buffer, filepath.Base(yamlFileName))
+				lint.KubevalLint(buffer, filepath.Base(yamlFileName))
 				// get all the yaml derived kubernetes objects out
 				// and store it in a slice
-				yamlObjects = append(yamlObjects, service.AttachMetaData(buffer, yamlFilePath)...)
+				yamlObjects = append(yamlObjects, lint.AttachMetaData(buffer, yamlFilePath)...)
 
 				// finally lint it with service/k8s-lint
 				// service.ValidateYamlFile(buffer, filepath.Base(yamlFilePath))
@@ -77,12 +75,12 @@ var serviceLintK8sCmd = &cobra.Command{
 				log.Fatal(err)
 			}
 			buffer := bytes.NewBuffer(data)
-			service.KubevalLint(buffer, filepath.Base("stdin"))
-			yamlObjects = append(yamlObjects, service.AttachMetaData(buffer, filepath.Base("stdin"))...)
+			lint.KubevalLint(buffer, filepath.Base("stdin"))
+			yamlObjects = append(yamlObjects, lint.AttachMetaData(buffer, filepath.Base("stdin"))...)
 		}
 		outPathIsDirectory := false
 		// check for now whether this metadata attaching is working correctly (just verify by hand)
-		exitCode := service.Lint(yamlObjects, standaloneLintMode, fix)
+		exitCode := lint.Lint(yamlObjects, standaloneLintMode, fix)
 		if fix {
 			s := json.NewYAMLSerializer(json.DefaultMetaFactory, scheme.Scheme, scheme.Scheme)
 			var f *os.File = os.Stdout
@@ -153,7 +151,7 @@ var serviceLintK8sCmd = &cobra.Command{
 func ReportFixes() {
 	green := color.New(color.FgHiGreen).SprintFunc()
 	fmt.Fprintf(os.Stderr, "=====%s=====\n", bold("FIX SUMMARY"))
-	for _, errorFix := range service.GetErrorFixes() {
+	for _, errorFix := range lint.GetErrorFixes() {
 		fmt.Fprintf(os.Stderr, " %s %s\n", green("✓"), errorFix)
 	}
 }
@@ -183,12 +181,12 @@ func nameFixed(fileName string) string {
 }
 
 func init() {
-	serviceCmd.AddCommand(serviceLintK8sCmd)
-	serviceLintK8sCmd.Flags().StringSliceVarP(&directories, "directories", "d", []string{}, "A comma-separated list of directories to recursively search for YAML documents")
-	serviceLintK8sCmd.Flags().BoolVarP(&standaloneLintMode, "standalone-mode", "", false, "Standalone mode - only run lint on the specified resources and skips any dependency checks")
-	serviceLintK8sCmd.Flags().BoolVar(&fix, "fix", false, "apply fixes after identifying errors, where possible")
-	serviceLintK8sCmd.Flags().StringVar(&outPath, "fix-output", "", "output fixed yaml to file instead of stdout")
-	serviceLintK8sCmd.Flags().BoolVar(&report, "fix-report", false, "report the successfully fixed errors")
+	RootCmd.AddCommand()
+	lintCmd.Flags().StringSliceVarP(&directories, "directories", "d", []string{}, "A comma-separated list of directories to recursively search for YAML documents")
+	lintCmd.Flags().BoolVarP(&standaloneLintMode, "standalone-mode", "", false, "Standalone mode - only run lint on the specified resources and skips any dependency checks")
+	lintCmd.Flags().BoolVar(&fix, "fix", false, "apply fixes after identifying errors, where possible")
+	lintCmd.Flags().StringVar(&outPath, "fix-output", "", "output fixed yaml to file instead of stdout")
+	lintCmd.Flags().BoolVar(&report, "fix-report", false, "report the successfully fixed errors")
 
 }
 

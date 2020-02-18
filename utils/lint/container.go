@@ -44,7 +44,7 @@ func ContainerRules(container *v1.Container, resource *YamlDerivedKubernetesReso
 		{
 			ID: CONTAINER_VALID_IMAGE,
 			Condition: func() bool {
-				return isImageAllowed(container.Image)
+				return IsImageAllowed(container.Image)
 			},
 			Message:   fmt.Sprintf("The image from this registry is not allowed. Expected an image from: %#v, Got image: %#v", ALLOWED_DOCKER_REGISTRIES, container.Image),
 			Level:     ERROR,

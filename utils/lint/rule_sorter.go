@@ -1,9 +1,7 @@
-package rulesorter
+package lint
 
 import (
 	"fmt"
-
-	. "bitbucket.org/welovetravel/xops/service/lint"
 )
 
 /* This object is used to store all the rules belonging to a resource group and looks like:
@@ -30,7 +28,7 @@ func (r *RuleSorter) Get(id RuleID) *Rule {
 * Create a new RuleSorter given a list of rules
 * Usual use case is to use the RuleSorter to access the rules in the correct order!
 **/
-func New(rules []*Rule) *RuleSorter {
+func NewRuleSorter(rules []*Rule) *RuleSorter {
 	e := make(map[RuleID]map[RuleID]RuleID)
 	r := make(map[RuleID]*Rule)
 	for _, rule := range rules {

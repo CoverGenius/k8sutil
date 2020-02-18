@@ -6,7 +6,8 @@ import (
 	"io/ioutil"
 	"os"
 
-	"bitbucket.org/welovetravel/xops/service"
+	"github.com/rdowavic/k8sutil/utils"
+	"github.com/rdowavic/k8sutil/utils/lint"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	meta "k8s.io/apimachinery/pkg/api/meta"
@@ -18,8 +19,8 @@ var (
 	showDirectories []string
 )
 
-var serviceShowDependenciesCmd = &cobra.Command{
-	Use:   "show-dependencies-k8s <file>*|-",
+var showDependenciesCmd = &cobra.Command{
+	Use:   "show-dependencies <file>*|-",
 	Short: "Show the dependencies implied by the given files and directories",
 	// Long: w
 	Run: func(cmd *cobra.Command, args []string) {
@@ -41,17 +42,17 @@ var serviceShowDependenciesCmd = &cobra.Command{
 				log.Fatal(err)
 			}
 			buffer := bytes.NewBuffer(rawBytes)
-			yamlObjects = append(yamlObjects, service.ConvertToMetaV1Objects(buffer)...)
+			yamlObjects = append(yamlObjects, lint.ConvertToMetaV1Objects(buffer)...)
 		}
 		// 4. Turn the metav1.Objects into DependencyInformations so we can print the things it told us
-		var dependencies []*service.DependencyInformation
+		var dependencies []*utils.DependencyInformation
 		for _, resource := range yamlObjects {
 			// dodgy, i am sorry, but I want to get some type information into this dependencyInfo struct
 			typed, err := meta.TypeAccessor(resource)
 			if err != nil {
 				continue
 			}
-			d := service.GetDependencyInformation(resource, typed)
+			d := utils.GetDependencyInformation(resource, typed)
 			dependencies = append(dependencies, d)
 		}
 		// 5. Pretty Print the Objects and some dependency information about them
@@ -59,7 +60,7 @@ var serviceShowDependenciesCmd = &cobra.Command{
 	},
 }
 
-func PrintDependencyInformation(dependencies []*service.DependencyInformation) {
+func PrintDependencyInformation(dependencies []*utils.DependencyInformation) {
 	for _, d := range dependencies {
 		if len(d.Requirements) == 0 {
 			continue
@@ -90,6 +91,6 @@ func GetFiles(filenames []string, args []string) ([]*os.File, error) {
 }
 
 func init() {
-	serviceCmd.AddCommand(serviceShowDependenciesCmd)
-	serviceShowDependenciesCmd.Flags().StringSliceVarP(&showDirectories, "directories", "d", []string{}, "A comma-separated list of directories to recursively search for YAML documents")
+	RootCmd.AddCommand(showDependenciesCmd)
+	showDependenciesCmd.Flags().StringSliceVarP(&showDirectories, "directories", "d", []string{}, "A comma-separated list of directories to recursively search for YAML documents")
 }

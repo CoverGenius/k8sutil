@@ -3,7 +3,7 @@ package kubeapi
 import (
 	"reflect"
 
-	"bitbucket.org/welovetravel/xops/service"
+	"github.com/rdowavic/k8sutil/utils"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 )
@@ -30,18 +30,18 @@ var specialMethods = []string{
 	"ConfigMaps",
 }
 
-func Convert(resources []interface{}) []*service.ResourceInfo {
+func Convert(resources []interface{}) []*utils.ResourceInfo {
 	// These are the basic Deployment objects
 	// They will usually have the needed fields. We will do some reflection to
 	// get what we need out. Because I am worried about some of the shit not being a runtime object
 	// for some reason.
-	var result []*service.ResourceInfo
+	var result []*utils.ResourceInfo
 	for _, resource := range resources {
 		value := reflect.ValueOf(resource)
 		if value.Kind() != reflect.Struct {
 			continue // have no idea what it is then lmfao
 		}
-		r := &service.ResourceInfo{}
+		r := &utils.ResourceInfo{}
 		nameValue := value.FieldByName("Name")
 		if nameValue.IsValid() && nameValue.Kind() == reflect.String {
 			// then let's grab it out and assign it to r

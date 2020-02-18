@@ -1,8 +1,6 @@
-package servicetest
+package tests
 
 import (
-	lint "bitbucket.org/welovetravel/xops/service/lint"
-	utils "github.com/rdowavic/k8sutil/utils"
 	batchV1beta1 "k8s.io/api/batch/v1beta1"
 	"testing"
 )
