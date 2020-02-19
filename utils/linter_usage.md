@@ -25,7 +25,7 @@ Some tests, like checking if a key is present in a structure, can be automatical
 ### `--fix-report`
 This option just causes a list of the fixes applied to the resources to be output to stdout under the heading "FIX SUMMARY". This is so you can be aware of any side effects caused by the linter. The linter can never modify any file in-place, but at least you will know how the fixed output should differ from the source yaml.
 
-<img src="screenshots/fix_summary.png" alt="linter fix summary" width="200"/>
+<img src="../screenshots/fix_summary.png" alt="linter fix summary" width="200"/>
 
 ### `--fix-output`
 The argument for this flag can not only be a filepath, but it can also be a directory. In that case, the fixed `.yaml` filename will be based on the original `.yaml` filename with the suffix `.fixed` prepended to the `.yaml` extension. For example, if the file `deployment.yaml` is linted with `--fix-output` argument set to `myDir` and the `--fix` flag is set, then there will be a new file `myDir/deployment.fixed.yaml` once the linter has successfully completed. The directory needs to already exist for this to successfully execute.
