@@ -1,4 +1,8 @@
-## How to use the `k8sutil lint` linter
+## How to use `k8sutil lint`
+
+### Basic valid invocations
+`k8sutil lint -d ~/yamls` <br>
+`k8sutil lint my_deployment.yaml`
 
 This is a reference for the command's usage.
 
@@ -14,11 +18,22 @@ Flags:
 --standalone-mode Standalone mode - only run lint on the specified resources and skips any dependency checks
 ```
 
-The `--fix-output` argument can not only be a filepath, but it can also be a directory. In that case, the fixed `.yaml` filename will be based on the original `.yaml` filename with the suffix `.fixed` prepended to the `.yaml` extension. For example, if the file `deployment.yaml` is linted with `--fix-output` argument set to `myDir` and the `--fix` flag is set, then there will be a new file `myDir/deployment.fixed.yaml` once the linter has successfully completed. The directory needs to already exist for this to successfully execute.
+### `--standalone-mode`
+There are independent rules defined by the linter. These are rules for which you can determine whether they are satisfied by inspectining a resource independently from its context. This means that any [interdependent rules](utils/linting.md) are not tested.
+### `--fix`
+Some tests, like checking if a key is present in a structure, can be automatically fixed by the linter by mutating the in-memory representation of the kubernetes resource. If you specify this flag, this means that all tests for which an automatic fix can be applied will be applied and the result will be output to stdout by default (use `--fix-output` if you want to change this behaviour). 
+### `--fix-report`
+This option just causes a list of the fixes applied to the resources to be output to stdout under the heading "FIX SUMMARY". This is so you can be aware of any side effects caused by the linter. The linter can never modify any file in-place, but at least you will know how the fixed output should differ from the source yaml.
 
-When the  `--fix` flag is specified, the linter tries its best to autocorrect any field that does not require further input from the user. For example, it can set the user and group ID correctly without intervention. But if there is a required label missing, this requires further input because the label's value cannot be determined. Therefore, the error will remain in the fixed file for a human to manually fix. The linter error messages are intended to be informative enough so that the process of correcting the yaml file is straightforward.
+<img src="screenshots/fix_summary.png" alt="linter fix summary" width="200"/>
 
-### Invocations of the command and their meaning
+### `--fix-output`
+The argument for this flag can not only be a filepath, but it can also be a directory. In that case, the fixed `.yaml` filename will be based on the original `.yaml` filename with the suffix `.fixed` prepended to the `.yaml` extension. For example, if the file `deployment.yaml` is linted with `--fix-output` argument set to `myDir` and the `--fix` flag is set, then there will be a new file `myDir/deployment.fixed.yaml` once the linter has successfully completed. The directory needs to already exist for this to successfully execute.
+
+### `--directories`
+In addition to being able to pass any number of filenames as arguments to the `lint` subcommand, you can also pass directories that will be recursively searched for files with `.yaml` or `.yml` extensions. (This has exactly the same behaviour as `kubeval`'s directories flag).
+
+### More complicated invocations of the command and their meaning
 
 (1) `k8sutil lint deployment.yaml --standalone-mode`
 
@@ -38,7 +53,7 @@ Just like (1), but also applying any fixes where possible and printing the resul
 
 (3) `k8sutil lint deployment.yaml --standalone-mode --fix --fix-output fixed.yaml`
 
-Just like (2), but printing the result to `$(pwd)/fixed.yaml` instead of stdout.
+Just like (2), but printing the result to `$(pwd)/fixed.yaml` instead of stdout. The file should not exist beforehand, otherwise it will be overwritten, I think.
 
 **Example**
 
