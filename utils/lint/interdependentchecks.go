@@ -79,7 +79,7 @@ func InterdependentRules(context []*YamlDerivedKubernetesResource) []*Rule {
 			},
 			Message:   "There should be a network policy defined for the namespace",
 			Level:     ERROR,
-			Resources: namespaces[0:2],
+			Resources: namespaces,
 			Fix:       func() bool { return false },
 		},
 		&Rule{
@@ -87,10 +87,9 @@ func InterdependentRules(context []*YamlDerivedKubernetesResource) []*Rule {
 			Condition: func() bool {
 				return len(namespaces) <= 1
 			},
-			Message:   "You shouldn't need to define more than one namespace per analysis unit",
-			Level:     ERROR,
-			Resources: namespaces[0:2],
-			Fix:       func() bool { return false },
+			Message: "You shouldn't need to define more than one namespace per analysis unit",
+			Level:   ERROR,
+			Fix:     func() bool { return false },
 		},
 	)
 	return rules
