@@ -5,7 +5,7 @@ This is a reference for the command's usage.
 ```
 Lint YAML file(s) against a set of predefined kubernetes best practices
 Usage:
-  xops service lint-k8s <filepath>* [flags]
+  k8sutil lint <filepath>* [flags]
 Flags:
 -d, --directories strings A comma-separated list of directories to recursively search for YAML documents
 --fix apply fixes after identifying errors, where possible
@@ -14,34 +14,35 @@ Flags:
 --standalone-mode Standalone mode - only run lint on the specified resources and skips any dependency checks
 ```
 
-The `--out` argument can not only be a filepath, but it can also be a directory. In that case, the fixed `.yaml` filename will be based on the original `.yaml` filename with the suffix `.fixed` prepended to the `.yaml` extension. For example, if the file `deployment.yaml` is linted with `--fix-output` argument set to `myDir` and the `--fix` flag is set, then there will be a new file `myDir/deployment.fixed.yaml` once the linter has successfully completed. The directory needs to already exist for this to successfully execute.
+The `--fix-output` argument can not only be a filepath, but it can also be a directory. In that case, the fixed `.yaml` filename will be based on the original `.yaml` filename with the suffix `.fixed` prepended to the `.yaml` extension. For example, if the file `deployment.yaml` is linted with `--fix-output` argument set to `myDir` and the `--fix` flag is set, then there will be a new file `myDir/deployment.fixed.yaml` once the linter has successfully completed. The directory needs to already exist for this to successfully execute.
 
 When the  `--fix` flag is specified, the linter tries its best to autocorrect any field that does not require further input from the user. For example, it can set the user and group ID correctly without intervention. But if there is a required label missing, this requires further input because the label's value cannot be determined. Therefore, the error will remain in the fixed file for a human to manually fix. The linter error messages are intended to be informative enough so that the process of correcting the yaml file is straightforward.
 
 ### Invocations of the command and their meaning
 
-(1) `xops service lint-k8s deployment.yaml --standalone-mode`
+(1) `k8sutil lint deployment.yaml --standalone-mode`
+
 Analyse `deployment.yaml` based on the linter rules documented in `linting.md`, printing a failure or warning message when the linter rule is not satisfied. Do not test this resource against any interdependent rules.
 
 **Example**
 
 ```
-./xops service lint-k8s test_k8s_yaml/deployment_invalid_user_group_ids.yaml --standalone-mode
+./k8sutil lint test_k8s_yaml/deployment_invalid_user_group_ids.yaml --standalone-mode
 PASS - deployment_invalid_user_group_ids.yaml contains a valid Deployment
 ERR - deployment_invalid_user_group_ids.yaml:1 (Deployment hello-world-web): The user and group ID should be set to 44444
 ```
 
-(2) `xops service lint-k8s deployment.yaml --standalone-mode --fix`
+(2) `k8sutil lint deployment.yaml --standalone-mode --fix`
 Just like (1), but also applying any fixes where possible and printing the result to stdout.
 
-(3) `xops service lint-k8s deployment.yaml --standalone-mode --fix --out fixed.yaml`
+(3) `k8sutil lint deployment.yaml --standalone-mode --fix --fix-output fixed.yaml`
 Just like (2), but printing the result to `$(pwd)/fixed.yaml` instead of stdout.
 
 **Example**
 
 ```
-$ ./xops service lint-k8s test_k8s_yaml/deployment_invalid_user_group_ids.yaml \
-  --standalone-mode --fix --out fixed.yaml
+$ ./k8sutil lint test_k8s_yaml/deployment_invalid_user_group_ids.yaml \
+  --standalone-mode --fix --fix-output fixed.yaml
 $ diff fixed.yaml test_k8s_yaml/deployment_invalid_user_group_ids.yaml
 63c63
 < runAsGroup: 44444
@@ -51,18 +52,18 @@ $ diff fixed.yaml test_k8s_yaml/deployment_invalid_user_group_ids.yaml
 < runAsUser: 44444
 ---
 > runAsUser: 1000
-$ ./xops service lint-k8s fixed.yaml --standalone-mode
+$ ./k8sutil lint fixed.yaml --standalone-mode
 PASS - fixed.yaml contains a valid Deployment
 ```
-(4) `xops service -d partially_wrong_unit --fix --out .`
+(4) `xops service -d partially_wrong_unit --fix --fix-output .`
 Lint all files within the `partially_wrong_unit` directory and output the fixed `.yaml` files to the current directory with the `.fixed` suffix.
 
 **Example**
 ```
-$ ./xops service lint-k8s \
+$ ./k8sutil lint \
 		-d test_k8s_yaml/partially_wrong_unit_directory \
 		--fix \
-		--out test_k8s_yaml/partially_wrong_unit_directory
+		--fix-output test_k8s_yaml/partially_wrong_unit_directory
 PASS - Deployment.yaml contains a valid Deployment
 PASS - Namespace.yaml contains a valid Namespace
 PASS - NetworkPolicy.yaml contains a valid NetworkPolicy
@@ -95,5 +96,5 @@ RoleBinding.yaml
 ServiceAccount.fixed.yaml
 ```
 
-(5) `xops service lint-k8s deployment.yaml service.yaml --standalone-mode --fix --out result.yaml`
-Lint the two `.yaml` without applying interdependent checks, and write the fixed version of the two files to `result.yaml`. This will be a multi-document `.yaml` with a `---` delimiting the serialised form of each object.
+(5) `k8sutil lint deployment.yaml service.yaml --standalone-mode --fix --fix-output result.yaml`
+Lint the two `.yaml` without applying interdependent checks, and write the fixed version of the two files to `result.yaml`. This will be a multi-document `.yaml`. 
