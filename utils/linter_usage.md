@@ -33,9 +33,11 @@ ERR - deployment_invalid_user_group_ids.yaml:1 (Deployment hello-world-web): The
 ```
 
 (2) `k8sutil lint deployment.yaml --standalone-mode --fix`
+
 Just like (1), but also applying any fixes where possible and printing the result to stdout.
 
 (3) `k8sutil lint deployment.yaml --standalone-mode --fix --fix-output fixed.yaml`
+
 Just like (2), but printing the result to `$(pwd)/fixed.yaml` instead of stdout.
 
 **Example**
@@ -56,6 +58,7 @@ $ ./k8sutil lint fixed.yaml --standalone-mode
 PASS - fixed.yaml contains a valid Deployment
 ```
 (4) `xops service -d partially_wrong_unit --fix --fix-output .`
+
 Lint all files within the `partially_wrong_unit` directory and output the fixed `.yaml` files to the current directory with the `.fixed` suffix.
 
 **Example**
@@ -97,4 +100,5 @@ ServiceAccount.fixed.yaml
 ```
 
 (5) `k8sutil lint deployment.yaml service.yaml --standalone-mode --fix --fix-output result.yaml`
+
 Lint the two `.yaml` without applying interdependent checks, and write the fixed version of the two files to `result.yaml`. This will be a multi-document `.yaml`. 
