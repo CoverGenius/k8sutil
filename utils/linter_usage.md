@@ -1,4 +1,4 @@
-## How to use the `service lint-k8s` linter
+## How to use the `k8sutil lint` linter
 
 This is a reference for the command's usage.
 
@@ -10,11 +10,11 @@ Flags:
 -d, --directories strings A comma-separated list of directories to recursively search for YAML documents
 --fix apply fixes after identifying errors, where possible
 -h, --help  help for lint-k8s
---out string  output fixed yaml to file instead of stdout
+--fix-output string  output fixed yaml to file or folder instead of stdout
 --standalone-mode Standalone mode - only run lint on the specified resources and skips any dependency checks
 ```
 
-The `--out` argument can not only be a filepath, but it can also be a directory. In that case, the fixed `.yaml` filename will be based on the original `.yaml` filename with the suffix `.fixed` prepended to the `.yaml` extension. For example, if the file `deployment.yaml` is linted with `--out` argument set to `myDir` and the `--fix` flag is set, then there will be a new file `myDir/deployment.fixed.yaml` once the linter has successfully completed. The directory needs to already exist for this to successfully execute.
+The `--out` argument can not only be a filepath, but it can also be a directory. In that case, the fixed `.yaml` filename will be based on the original `.yaml` filename with the suffix `.fixed` prepended to the `.yaml` extension. For example, if the file `deployment.yaml` is linted with `--fix-output` argument set to `myDir` and the `--fix` flag is set, then there will be a new file `myDir/deployment.fixed.yaml` once the linter has successfully completed. The directory needs to already exist for this to successfully execute.
 
 When the  `--fix` flag is specified, the linter tries its best to autocorrect any field that does not require further input from the user. For example, it can set the user and group ID correctly without intervention. But if there is a required label missing, this requires further input because the label's value cannot be determined. Therefore, the error will remain in the fixed file for a human to manually fix. The linter error messages are intended to be informative enough so that the process of correcting the yaml file is straightforward.
 
