@@ -19,7 +19,7 @@ Flags:
 ```
 
 ### `--standalone-mode`
-There are independent rules defined by the linter. These are rules for which you can determine whether they are satisfied by inspectining a resource independently from its context. This means that any [interdependent rules](utils/linting.md) are not tested.
+There are independent rules defined by the linter. These are rules for which you can determine whether they are satisfied by inspectining a resource independently from its context. This means that any [interdependent rules](linting.md) are not tested.
 ### `--fix`
 Some tests, like checking if a key is present in a structure, can be automatically fixed by the linter by mutating the in-memory representation of the kubernetes resource. If you specify this flag, this means that all tests for which an automatic fix can be applied will be applied and the result will be output to stdout by default (use `--fix-output` if you want to change this behaviour). 
 ### `--fix-report`
