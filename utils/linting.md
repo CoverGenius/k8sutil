@@ -1,14 +1,13 @@
 ### What this linter does
 
 This linter enforces kubernetes best practices. [Here](https://thenewstack.io/10-kubernetes-best-practices-you-can-easily-apply-to-your-clusters/) 
-is an example of popular best practices.  This tool is a subcommand of `service` and you can provide one or more files or 
-folders to lint as argument to the subcommand `lint-k8s`. The arguments you pass are treated as one cohesive unit to be analysed if you do not specify `--standalone-mode`.
+is an example of popular best practices. The arguments you pass are treated as one cohesive unit to be analysed if you do not specify `--standalone-mode`.
 
 Refer to [linter_usage.md](./linter_usage.md) for more information on how to use the command.
 
 ### Rules enforced by the linter
-
-A Container:
+#### Independent Rules
+A Container (`v1.Container`):
 
    - must have a security context key present
    - must disallow privilege escalation
@@ -17,7 +16,7 @@ A Container:
    - must not request more than 1 unit of CPU
    - must use an image from a set of allowed registries
 
- A Pod:
+ A Pod (`v1.Pod`):
 
    - must have a security context key present
    - must run as non root
@@ -25,7 +24,7 @@ A Container:
    - must define exactly one container
    - must have its container comply with Container rules
    
- A Deployment:
+ A Deployment (`appsv1.Deployment`):
  
    - must have a `project` label set
    - must have an `app.kubernetes.io/name` label set
@@ -33,10 +32,12 @@ A Container:
    - Pod placement to prevent eviction (TBD)
    - must define a liveness and readiness probe for its container
    - must have its PodSpec comply with Pod rules
-   - should not have matching readiness and liveness endpoints 
-   - Must be an `apps/v1` Deployment (ref: `deprecated_apiversions.go`)
+   - should not have matching readiness and liveness endpoints
+   
+A Deployment (`v1beta1Extensions.Deployment`)
+   - Must be an `apps/v1` Deployment (see `deprecated_apiversions.go`)
 
-A CronJob:
+A CronJob (`batchV1beta1.CronJob`):
 
    - must be within a namespace
    - must disallow concurrent operations
@@ -44,7 +45,7 @@ A CronJob:
    - must have resource consumption set (TBD)
    - must have its PodSpec comply with Pod rules
 
-A Job:
+A Job (`batchV1.Job`):
 
   - must be within a namespace
   - must have security context set
@@ -53,16 +54,16 @@ A Job:
   - must use an image from a set of allowed registries
    - must have its PodSpec comply with Pod rules
 
-A Namespace:
+A Namespace (`v1.Namespace`):
 
   - must have a name that is a valid DNS
 
-A Service:
+A Service (`v1.Service`):
 
   - must be within a namespace
   - name must be a valid DNS
 
-A Network Policy:
+A Network Policy (`v1beta1Extensions.NetworkPolicy`):
   
   - must be a `networking.k8s.io/v1` Network Policy (ref: `deprecated_apiversions.go`)
 
@@ -71,6 +72,7 @@ For example, you will find rules relating to a Deployment object within `deploym
 
 There are also rules that relate to the state of the entire unit of analysis. 
 
+#### Interdependent Rules
 - Every resource must be within the namespace present in the unit
 - The unit should only contain one service, if any
 - The unit must contain exactly one namespace object
@@ -80,15 +82,10 @@ You can find the implementation of these rules in `interdependentchecks.go`.
 
 ### Order of Evaluation of the Rules
 
-To make the rules easier to write, you can assign a new rule any number of prerequisites (a `[]RuleID`). That is,
-the rule needs other rules to succeed immediately or at least after being automatically fixed in order to ensure
-the safe execution of this rule. This is here so you can avoid doing a billion nil checks or slice length checks
-before dereferencing. As a result, the rules need to be evaluated in an order compatible with their topological
-sorted order. This is why there is a `RuleSorter` in `service/lint_k8s.go`. This is a an adjacency graph with
-methods like `PopNextAvailable()` that allow you to retrieve the rules in a sound order. If a rule fails, all
-the condition functions of the rules dependent upon it shouldn't be executed because they are likely to cause
-a panic, so you can use `PopDependentRules()` to flush these out of the graph and print their error messages
-if you want, since those tests could not have succeeded in any case. 
+Sometimes, the semantics of one rule relies on the fact that another rule has been satisfied. For example, a rule A could test whether a deployment has a particular key present in the `securityContext` field. But for this to make sense, the `securityContext` key must be present (rule B). Therefore, rule B is a prerequisite of rule A. The rules are tested in topologically sorted order (thanks to `RuleSorter`) to ensure that dependent rules can execute safely. If a prerequisite rule fails, all dependent rules are not executed, but will be reported to the user, since it is impossible to satisfy them, and it seems sensible to let the user know what they will need to do in order to avoid the error on a later pass.
+
+#### How to use this feature when implementing your own rule
+If the body of your rule performs some pointer or slice dereference for example, and you notice that many rules perform this dereference, it would be good if there was a way to avoid checking whether a pointer is non-nil or a slice is of the appropriate length every single time. This is a good opportunity to factor out the length check or nil check into a separate rule, and to add this rule to the list of prerequisites for any rule that performs the dereference. For example, you have write 5 rules about the semantics of a deployment's container, and in every single rule body, you need to check that `len(containers) == 1`. It would be better to write a separate rule `DEPLOYMENT_EXACTLY_1_CONTAINER` that only checks the length of `containers`, and add this rule as a prerequisite for any rules dependent on the length of the `containers` slice being 1. For example, a test that checks whether `deployment.Spec.Template.Spec.Containers[0].runAsNonRoot == true`.
 
 ### Limitations
 

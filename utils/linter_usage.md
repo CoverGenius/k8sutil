@@ -19,13 +19,14 @@ Flags:
 ```
 
 ### `--standalone-mode`
-There are independent rules defined by the linter. These are rules for which you can determine whether they are satisfied by inspectining a resource independently from its context. This means that any [interdependent rules](utils/linting.md) are not tested.
+The linter enforces both independent and interdependent rules, documented [here](linting.md). Sometimes you may want to ensure that all the given deployments and services are under the correct namespace, and this constitutes an interdependent rule. If you are just checking each resource one by one, for example, and you are not inputting an entire cohesive collection of kubernetes resources, you probably want to use this flag. This will make the linter forego any interdependent rule checking.
+
 ### `--fix`
 Some tests, like checking if a key is present in a structure, can be automatically fixed by the linter by mutating the in-memory representation of the kubernetes resource. If you specify this flag, this means that all tests for which an automatic fix can be applied will be applied and the result will be output to stdout by default (use `--fix-output` if you want to change this behaviour). 
 ### `--fix-report`
 This option just causes a list of the fixes applied to the resources to be output to stdout under the heading "FIX SUMMARY". This is so you can be aware of any side effects caused by the linter. The linter can never modify any file in-place, but at least you will know how the fixed output should differ from the source yaml.
 
-<img src="screenshots/fix_summary.png" alt="linter fix summary" width="200"/>
+<img src="../screenshots/fix_summary.png" alt="linter fix summary" width="600"/>
 
 ### `--fix-output`
 The argument for this flag can not only be a filepath, but it can also be a directory. In that case, the fixed `.yaml` filename will be based on the original `.yaml` filename with the suffix `.fixed` prepended to the `.yaml` extension. For example, if the file `deployment.yaml` is linted with `--fix-output` argument set to `myDir` and the `--fix` flag is set, then there will be a new file `myDir/deployment.fixed.yaml` once the linter has successfully completed. The directory needs to already exist for this to successfully execute.

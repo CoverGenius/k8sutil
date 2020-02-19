@@ -16,7 +16,7 @@ It's assumed that you've set the path with `KUBECONFIG`, otherwise the tool will
 
 ## `k8sutil workon`
 ### Effortlessly switch between contexts and namespaces without ever directly modifying your kube config
-You can use this tool to switch your current context to any context made available by your kube config, and at the same time decide which namespace to set for that context, without having to modify the config resource by hand. You're also guaranteed that the namespace you select is a valid choice. Each selection on the left window represents a valid context/namespace combination. This uses [go-fuzzyfinder](https://github.com/ktr0731/go-fuzzyfinder) as a frontend.
+You can use this tool to switch your current context to any context made available by your kube config, and at the same time decide which namespace to set for that context, without having to modify your config by hand. You're also guaranteed that the namespace you select is a valid choice. Each selection on the left window represents a valid context/namespace combination. This uses [go-fuzzyfinder](https://github.com/ktr0731/go-fuzzyfinder) as a frontend.
 
 <img src="screenshots/workon_example_run.png" alt="drawing" width="650"/>
 
