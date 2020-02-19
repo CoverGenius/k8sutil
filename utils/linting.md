@@ -7,7 +7,7 @@ folders to lint as argument to the subcommand `lint-k8s`. The arguments you pass
 Refer to [linter_usage.md](./linter_usage.md) for more information on how to use the command.
 
 ### Rules enforced by the linter
-
+#### Independent Rules
 A Container:
 
    - must have a security context key present
@@ -71,6 +71,7 @@ For example, you will find rules relating to a Deployment object within `deploym
 
 There are also rules that relate to the state of the entire unit of analysis. 
 
+#### Interdependent Rules
 - Every resource must be within the namespace present in the unit
 - The unit should only contain one service, if any
 - The unit must contain exactly one namespace object
@@ -80,15 +81,10 @@ You can find the implementation of these rules in `interdependentchecks.go`.
 
 ### Order of Evaluation of the Rules
 
-To make the rules easier to write, you can assign a new rule any number of prerequisites (a `[]RuleID`). That is,
-the rule needs other rules to succeed immediately or at least after being automatically fixed in order to ensure
-the safe execution of this rule. This is here so you can avoid doing a billion nil checks or slice length checks
-before dereferencing. As a result, the rules need to be evaluated in an order compatible with their topological
-sorted order. This is why there is a `RuleSorter` in `service/lint_k8s.go`. This is a an adjacency graph with
-methods like `PopNextAvailable()` that allow you to retrieve the rules in a sound order. If a rule fails, all
-the condition functions of the rules dependent upon it shouldn't be executed because they are likely to cause
-a panic, so you can use `PopDependentRules()` to flush these out of the graph and print their error messages
-if you want, since those tests could not have succeeded in any case. 
+Sometimes, the semantics of one rule relies on the fact that another rule has been satisfied. For example, a rule A could test whether a deployment has a particular key present in the `securityContext` field. But for this to make sense, the `securityContext` key must be present (rule B). Therefore, rule B is a prerequisite of rule A. The rules are tested in topologically sorted order thanks to `RuleSorter` to ensure that the dependent rules make sense to even execute at all. If a prerequisite test fails, all dependent tests are not executed, but will be reported to the user, since it is impossible to satisfy them, and it seems sensible to let the user know what they will need to do in order to avoid the error on a later pass.
+
+#### How to use this feature when implementing your own rule
+If the body of your rule performs some pointer or slice dereference for example, and you notice that many rules perform this dereference, it would be good if there was a way to avoid checking whether the pointer is non-nil or the slice is of the appropriate length every single time. This is a good opportunity to factor out the length check or nil check into a separate rule, and to add this rule to the list of prerequisites for any rule that performs the dereference. For example, imagine you write 5 rules about the semantics of a deployment's container, and in every single rule body, you need to check that `len(containers) == 1`. It would be better to write a separate test that only checks the length of `containers` called `DEPLOYMENT_EXACTLY_1_CONTAINER` and list this as a prerequisite for any follow-up tests, for example, a test that checks whether `deployment.Spec.Template.Spec.Containers[0].runAsNonRoot == true`.
 
 ### Limitations
 
