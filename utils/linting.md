@@ -1,14 +1,13 @@
 ### What this linter does
 
 This linter enforces kubernetes best practices. [Here](https://thenewstack.io/10-kubernetes-best-practices-you-can-easily-apply-to-your-clusters/) 
-is an example of popular best practices.  This tool is a subcommand of `service` and you can provide one or more files or 
-folders to lint as argument to the subcommand `lint-k8s`. The arguments you pass are treated as one cohesive unit to be analysed if you do not specify `--standalone-mode`.
+is an example of popular best practices. The arguments you pass are treated as one cohesive unit to be analysed if you do not specify `--standalone-mode`.
 
 Refer to [linter_usage.md](./linter_usage.md) for more information on how to use the command.
 
 ### Rules enforced by the linter
 #### Independent Rules
-A Container:
+A Container (`v1.Container`):
 
    - must have a security context key present
    - must disallow privilege escalation
@@ -17,7 +16,7 @@ A Container:
    - must not request more than 1 unit of CPU
    - must use an image from a set of allowed registries
 
- A Pod:
+ A Pod (`v1.Pod`):
 
    - must have a security context key present
    - must run as non root
@@ -25,7 +24,7 @@ A Container:
    - must define exactly one container
    - must have its container comply with Container rules
    
- A Deployment:
+ A Deployment (`appsv1.Deployment`):
  
    - must have a `project` label set
    - must have an `app.kubernetes.io/name` label set
@@ -33,10 +32,12 @@ A Container:
    - Pod placement to prevent eviction (TBD)
    - must define a liveness and readiness probe for its container
    - must have its PodSpec comply with Pod rules
-   - should not have matching readiness and liveness endpoints 
-   - Must be an `apps/v1` Deployment (ref: `deprecated_apiversions.go`)
+   - should not have matching readiness and liveness endpoints
+   
+A Deployment (`v1beta1Extensions.Deployment`)
+   - Must be an `apps/v1` Deployment (see `deprecated_apiversions.go`)
 
-A CronJob:
+A CronJob (`batchV1beta1.CronJob`):
 
    - must be within a namespace
    - must disallow concurrent operations
@@ -44,7 +45,7 @@ A CronJob:
    - must have resource consumption set (TBD)
    - must have its PodSpec comply with Pod rules
 
-A Job:
+A Job (`batchV1.Job`):
 
   - must be within a namespace
   - must have security context set
@@ -53,16 +54,16 @@ A Job:
   - must use an image from a set of allowed registries
    - must have its PodSpec comply with Pod rules
 
-A Namespace:
+A Namespace (`v1.Namespace`):
 
   - must have a name that is a valid DNS
 
-A Service:
+A Service (`v1.Service`):
 
   - must be within a namespace
   - name must be a valid DNS
 
-A Network Policy:
+A Network Policy (`v1beta1Extensions.NetworkPolicy`):
   
   - must be a `networking.k8s.io/v1` Network Policy (ref: `deprecated_apiversions.go`)
 
