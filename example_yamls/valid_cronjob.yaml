@@ -1,0 +1,41 @@
+apiVersion: batch/v1beta1
+kind: CronJob
+metadata:
+  name: cron
+  namespace: dogs-staging
+  labels:
+    project: dogs
+spec:
+  schedule: "* * * * *"
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          securityContext:
+            runAsUser: 44444
+            runAsGroup: 44444
+          containers:
+          - name: cron
+            image: 277433404353.dkr.ecr.eu-central-1.amazonaws.com
+            args:
+            - bash
+            - -c
+            - /schedule.sh
+            env:
+            - name: ENVIRONMENT
+              value: staging
+            securityContext:
+              allowPrivilegeEscalation: false
+            resources:
+              requests:
+                memory: "64Mi"
+                cpu: "0.25"
+              limits:
+                memory: "64Mi"
+                cpu: "0.25"
+          restartPolicy: OnFailure
+          nodeSelector:
+            nodegroup: dogs 
+            environment: staging
+      ttlSecondsAfterFinished: 86400
+  concurrencyPolicy: Forbid

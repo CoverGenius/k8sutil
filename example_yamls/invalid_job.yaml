@@ -1,0 +1,44 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: db-migration
+  namespace: xcover-batch-production
+spec:
+  template:
+    spec:
+      securityContext:
+        runAsUser: 44444
+        runAsGroup: 44444
+      containers:
+        - name: db-migration
+          image: invalid/image
+          args:
+          - bash
+          - -c
+          - /migrate.sh
+          env:
+            - name: ENVIRONMENT
+              value: production
+            - name: TRUNCATE_DATABASE
+              value: "false"
+            - name: DB_PORT
+              value: "5432"
+            - name: TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: xcover-batch-app-token
+                  key: token
+            
+          securityContext:
+            allowPrivilegeEscalation: false
+          resources:
+            requests:
+              memory: "64Mi"
+              cpu: "0.25"
+            limits:
+              memory: "256Mi"
+              cpu: "0.8"
+      restartPolicy: Never
+  ttlSecondsAfterFinished: 3600
+  backoffLimit: 4
+

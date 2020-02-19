@@ -1,0 +1,54 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  creationTimestamp: null
+  labels:
+    project: xledger
+  name: xledger-db
+  namespace: xledger-qa
+spec:
+  replicas: 1
+  revisionHistoryLimit: 10
+  selector:
+    matchLabels:
+      app: xledger-db
+      project: xledger
+  strategy:
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 1
+    type: RollingUpdate
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        app.kubernetes.io/name: xledger-db
+        project: xledger
+    spec:
+      containers:
+      - envFrom:
+        - configMapRef:
+            name: postgres-config
+        image: postgres:10.10
+        imagePullPolicy: IfNotPresent
+        name: postgres
+        resources: {}
+        volumeMounts:
+        - mountPath: /var/lib/postgresql/data
+          name: xledger-db
+      dnsPolicy: ClusterFirst
+      nodeSelector:
+        environment: qa
+        nodegroup: services
+      restartPolicy: Always
+      schedulerName: default-scheduler
+      securityContext:
+        runAsGroup: 44444
+        runAsNonRoot: true
+        runAsUser: 44444
+      terminationGracePeriodSeconds: 30
+      volumes:
+      - name: xledger-db
+        persistentVolumeClaim:
+          claimName: xledger-db
+status: {}

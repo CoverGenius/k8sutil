@@ -1,0 +1,67 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  creationTimestamp: null
+  labels:
+    project: demo
+  name: hello-world-web
+  namespace: demo-qa
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: hello-world-web
+      project: demo
+  strategy: {}
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        app: hello-world-web
+        app.kubernetes.io/name: HI
+        project: demo
+    spec:
+      containers:
+      - args:
+        - bash
+        - -c
+        - /app.sh
+        env:
+        - name: LISTEN_ADDRESS
+          value: :8443
+        image: 277433404353.dkr.ecr.eu-central-1.amazonaws.com
+        imagePullPolicy: Always
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 8443
+            scheme: HTTPS
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        name: hello-world-web
+        readinessProbe:
+          httpGet:
+            path: /hello
+            port: 8443
+            scheme: HTTPS
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        resources:
+          limits:
+            cpu: 800m
+            memory: 4Gi
+          requests:
+            cpu: 500m
+            memory: 1Gi
+        securityContext:
+          allowPrivilegeEscalation: false
+          privileged: false
+      nodeSelector:
+        environment: qa
+        nodegroup: demo
+      securityContext:
+        runAsGroup: 1000
+        runAsNonRoot: true
+        runAsUser: 1000
+      serviceAccountName: hello-world
+status: {}

@@ -1,0 +1,72 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: hello-world-web
+  namespace: demo-qa
+  labels:
+    project: demo
+spec:
+  replicas:  1
+  selector:
+    matchLabels:
+      project: demo
+      app: hello-world-web
+  template:
+    metadata:
+      labels:
+        app: hello-world-web
+        project: demo
+    spec:
+      serviceAccountName: hello-world
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+      containers:
+      - name: hello-world-web
+        image: amitsaha/webapp-demo:golang-tls
+        imagePullPolicy: Always
+        args:
+        - bash
+        - -c
+        - "/app.sh"
+        env:
+          - name: LISTEN_ADDRESS
+            value: :8443
+          
+          
+        securityContext:
+          privileged: false
+          allowPrivilegeEscalation: false
+        resources:
+          requests:
+            memory: "1Gi"
+            cpu: "0.5"
+          limits:
+            memory: "4Gi"
+            cpu: "0.8"
+        
+        livenessProbe:
+          httpGet:
+            scheme: HTTPS
+            path: /
+            port: 8443
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            scheme: HTTPS
+            path: /
+            port: 8443
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        
+        volumeMounts:
+        
+        
+      volumes:
+      
+      
+      nodeSelector:
+        nodegroup: demo
+        environment: qa
