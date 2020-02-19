@@ -8,17 +8,47 @@ This is a command line tool with subcommands for creating and interpreting kuber
 4. Run `./k8sutil --help` to show the available subcommands
 
 ## Available Subcommands
-### Display the current context, current namespace, and current cluster configured by your Kubernetes Config File
-`k8sutil get-context` will read from the `KUBECONFIG` environment variable if it is set, otherwise it is read from `~/.kube/config`.
+## `k8sutil get-context`
+### Easily display the current context, namespace, cluster, and user configured by your kube config 
+It's assumed that you've set the path with `KUBECONFIG`, otherwise the tool will default to looking in `~/.kube/config`.
 
-![](screenshots/get-context_example_run)
+<img src="screenshots/get-context_example_run.png" alt="drawing" width="500"/>
 
-### Easily switch current context and namespace for `kubectl`
-TODO: Documentation
-### Summarise Kubernetes Resource Information (remote or defined locally in YAMLs)
-TODO: Documentation
-### Lint YAML Kubernetes Resource Definitions for Security Vulnerabilities
-TODO: Documentation
+## `k8sutil workon`
+### Effortlessly switch between contexts and namespaces without ever directly modifying your kube config
+You can use this tool to switch your current context to any context made available by your kube config, and at the same time decide which namespace to set for that context, without having to modify the config resource by hand. You're also guaranteed that the namespace you select is a valid choice. Each selection on the left window represents a valid context/namespace combination. This uses [go-fuzzyfinder](https://github.com/ktr0731/go-fuzzyfinder) as a frontend.
+
+<img src="screenshots/workon_example_run.png" alt="drawing" width="650"/>
+
+## `k8sutil summarise`
+### Summarise remote or local kubernetes resource information
+If you want to inspect the contents of a single yaml file or even a directory of yaml files without every actually opening them, use this tool to get easily readable coloured output with name, namespace, and kind information for each resource. Here's an example of a basic invocation of the command.
+
+<img src="screenshots/summarise_example_basic.png" alt="drawing" width="500"/>
+
+You can also group the resources by kind (`--group-by-kind`), show the filepath from which the resource originated (`--show-filepath`), and filter by kind (`--kind`).
+
+<img src="screenshots/summarise_group_by_kind.png" alt="drawing" width="500"/>
+
+<img src="screenshots/summarise_kind.png" alt="drawing" width="500"/>
+
+You can also fetch resources in the cluster with `--remote`. For this, you need to specify a namespace. All the resources within that namespace will be displayed.
+
+<img src="screenshots/summarise_remote.png" alt="drawing" width="500"/>
+
+## `k8sutil lint`
+### Lint YAML kubernetes resources for security vulnerabilities
+
+Inspired by popular kubernetes [best practices](https://thenewstack.io/10-kubernetes-best-practices-you-can-easily-apply-to-your-clusters/), this tool aims to automate the process of identifying possible vulnerabilities in a kubernetes resource definition and suggests and/or applies possible fixes. As of now, you can fork the project and add your [own linting rules](utils/linting.md) if you want to extend the default functionality. Here's an example of the tool linting a Deployment definition for possible issues.
+
+<img src="screenshots/lint_basic_invalid_job.png" alt="drawing" width="800"/>
+
+You can also get the tool to attempt to apply the fixes itself, instead doing it by hand. This is flushed to standard output by default, but you can specify `--fix-output` with a file or directory name to have the fixed versions saved directly onto disk.
+
+<img src="screenshots/lint_report_fix.png" alt="drawing" width="800"/>
+
+If you're interested, here's [more detailed information](utils/linter_usage.md) on how to use the tool.
+
 ### Show Dependencies implied by YAML Kubernetes Resources
 TODO: Documentation
 
