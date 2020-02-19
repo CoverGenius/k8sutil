@@ -49,9 +49,11 @@ You can also get the tool to attempt to apply the fixes itself, instead doing it
 
 If you're interested, here's [more detailed information](utils/linter_usage.md) on how to use the tool.
 
+## `show-dependencies`
 ### Show Dependencies implied by YAML Kubernetes Resources
-TODO: Documentation
+Sometimes a resource definition contains a reference to another kubernetes resource, implying that you think the other resource actually exists at all. This tool gives you a basic summary of the assumptions that your kubernetes resources are making. This way, you can ensure that those assumptions are met before you go ahead and apply to the cluster. See the [source ](utils/analyse_dependencies.go) for all the assumptions that are reported for each resource type.
 
+<img src="screenshots/show_dependencies.png" alt="drawing" width="600"/>
 
 ### TODO (Future Work)
 - The utils package is kind of a mess, want to make subdirectories based on each subcommand?
