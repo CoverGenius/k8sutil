@@ -182,7 +182,7 @@ func init() {
 	lintCmd.Flags().StringSliceVarP(&directories, "directories", "d", []string{}, "A comma-separated list of directories to recursively search for YAML documents")
 	lintCmd.Flags().BoolVarP(&standaloneLintMode, "standalone-mode", "", false, "Standalone mode - only run lint on the specified resources and skips any dependency checks")
 	lintCmd.Flags().BoolVar(&fix, "fix", false, "apply fixes after identifying errors, where possible")
-	lintCmd.Flags().StringVar(&outPath, "fix-output", "", "output fixed yaml to file instead of stdout")
+	lintCmd.Flags().StringVar(&outPath, "fix-output", "", "output fixed yaml to file or folder instead of stdout")
 	lintCmd.Flags().BoolVar(&report, "fix-report", false, "report the successfully fixed errors")
 
 }
