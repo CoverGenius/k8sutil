@@ -31,6 +31,7 @@ type Colour func(...interface{}) string
 var (
 	kind                string
 	groupByResourceKind bool
+	groupByLabel        bool
 	showFilePath        bool
 	remote              bool
 	namespace           string
@@ -89,29 +90,24 @@ PersistentVolumeClaim:
 `,
 	Aliases: []string{"summarize"},
 	Run: func(cmd *cobra.Command, args []string) {
-		// try to do something random with the kubernetes API
-		if remote && namespace == "" {
-			// then this isn't a valid calling of the function
-			fmt.Println("You need to provide a namespace if you want to retrieve remote resources")
-			cmd.Usage()
-			os.Exit(1)
+		// test invalid flag combinations
+		if groupByLabel && groupByResourceKind {
+			log.Fatal("You can't group by both kind and label, that makes no sense")
 		}
 
 		var resources []*utils.ResourceInfo
-		// parse args and directories and get a []runtime.Object
-		if remote && namespace != "" {
+		// 1. Retrieve the resources. The way this is done depends on whether they specified remote.
+		if remote {
 			// create a config and use the kubeapi package to retrieve the resources in that namespace
 			config, _ := clientcmd.BuildConfigFromFlags("", os.Getenv("HOME")+"/.kube/config")
 			clientset, _ := kubernetes.NewForConfig(config)
+			// GetResources gives us an array of interface{}s
 			r, err := kubeapi.GetResources(clientset, namespace)
 			if err != nil {
 				log.Fatal(err)
 			}
 			resources = kubeapi.Convert(r)
-			// put them into the group by kind
-		}
-
-		if !remote {
+		} else {
 			if len(args) == 0 || args[0] != "-" {
 				fileNames, err := AggregateFiles(args, directories)
 				if err != nil {
@@ -136,22 +132,52 @@ PersistentVolumeClaim:
 				os.Exit(1)
 			}
 		}
-		// loop through slice and print relevant information
-		if groupByResourceKind {
-			PrintGroupByKind(resources)
-		} else if kind != "" {
-			// if that kind is not in the global map thing, then log a fatal error
-			if _, ok := GetResourcesGroupedByKind(resources)[kind]; !ok {
-				// then no resources of this kind exist
-				os.Exit(1)
+		// If they provided the namespace flag without remote, we should filter by namespace.
+		if namespace != "" && !remote {
+			resources = filterByNamespace(namespace, resources)
+		}
+		if kind != "" {
+			resources = filterByKind(kind, resources)
+		}
+		// Check whether the thing is empty, just to let them know there's nothing left
+		if len(resources) == 0 {
+			msg := "No resources found"
+			if namespace != "" {
+				msg += fmt.Sprintf(" under the namespace %s", namespace)
 			}
-			PrintFilteredByKind(resources, kind)
-		} else if showLabels {
+			if kind != "" {
+				msg += fmt.Sprintf(" of kind %s", kind)
+			}
+			log.Fatal(msg)
+		}
+		if groupByLabel {
 			PrintGroupByLabel(resources)
+		} else if groupByResourceKind {
+			PrintGroupByKind(resources)
 		} else {
 			PrintDefault(resources)
 		}
 	},
+}
+
+func filterByKind(kind string, resources []*utils.ResourceInfo) []*utils.ResourceInfo {
+	var filtered []*utils.ResourceInfo
+	for _, resource := range resources {
+		if resource.Kind == kind {
+			filtered = append(filtered, resource)
+		}
+	}
+	return filtered
+}
+
+func filterByNamespace(namespace string, resources []*utils.ResourceInfo) []*utils.ResourceInfo {
+	var filtered []*utils.ResourceInfo
+	for _, resource := range resources {
+		if resource.Namespace == namespace {
+			filtered = append(filtered, resource)
+		}
+	}
+	return filtered
 }
 
 func aggregateLabels(resources []*utils.ResourceInfo) map[string][]string {
@@ -247,25 +273,31 @@ func PrintGroupByKind(resources []*utils.ResourceInfo) {
 func PrintGroupByLabel(resources []*utils.ResourceInfo) {
 	labelMap := GetResourcesGroupedByLabel(resources)
 	for label, list := range labelMap {
-		fmt.Printf("Label %s:\n", nameStyle(label))
+		fmt.Printf("%s %s:\n", bold("Label"), bold(label))
 		for _, resource := range list {
-			if resource.Name != "" {
-				fmt.Printf("\t%s: %s\n", cyan("Name"), resource.Name)
-			}
-			if resource.Namespace != "" {
-				fmt.Printf("\t%s: %s\n", green("Namespace"), resource.Namespace)
-			}
+			// new version, similar to group by kind
+			fmt.Printf("\t- %s", yellow(resource.Name))
 			if resource.Kind != "" {
-				fmt.Printf("\t%s: %s\n", magenta("Kind"), resource.Kind)
+				fmt.Printf(" (%s)", resource.Kind)
 			}
-			if showFilePath && resource.FileName != "" {
-				fmt.Printf("\t%s: %s\n", yellow("Filepath"), resource.FileName)
+
+			if resource.Namespace != "" {
+				fmt.Printf(" in %s", green(resource.Namespace))
+			}
+			if showFilePath {
+				fmt.Printf(" from %s", magenta(resource.FileName))
 			}
 			if showLabels && resource.Labels != nil {
-				fmt.Printf("\t%s:\n", blue("Labels"))
+				i := 0
+				fmt.Printf(" (")
 				for k, v := range resource.Labels {
-					fmt.Printf("\t\t%s: %s\n", purple(k), v)
+					fmt.Printf("%s: %s", k, v)
+					if i != len(resource.Labels)-1 {
+						fmt.Printf(", ")
+					}
+					i++
 				}
+				fmt.Printf(")\n")
 			}
 		}
 	}
@@ -326,6 +358,7 @@ func Convert(resource runtime.Object, b []byte, fileName string) (*utils.Resourc
 	if object, conformsToMetaV1Object := resource.(metav1.Object); conformsToMetaV1Object {
 		r.Name = object.GetName()
 		r.Namespace = object.GetNamespace()
+		r.Labels = object.GetLabels()
 	}
 	//Resource kind
 	typed, err := meta.TypeAccessor(resource)
@@ -343,11 +376,12 @@ func init() {
 	resourcesGroupedByLabel = make(map[string][]*utils.ResourceInfo)
 	RootCmd.AddCommand(summariseCmd)
 	summariseCmd.Flags().StringSliceVarP(&directories, "directories", "d", nil, "A comma-separated list of directories to recursively search for YAML documents")
-	summariseCmd.Flags().BoolVarP(&groupByResourceKind, "group-by-resource-kind", "g", false, "Group output by resource kind")
+	summariseCmd.Flags().BoolVarP(&groupByResourceKind, "group-by-kind", "", false, "Group output by resource kind")
 	summariseCmd.Flags().BoolVarP(&showFilePath, "show-file", "f", false, "Show which file this resource was read from")
 	summariseCmd.Flags().StringVarP(&kind, "kind", "k", "", "Only show resources of a certain kind, eg Deployment.")
 	summariseCmd.Flags().BoolVarP(&remote, "remote", "r", false, "Get resources from remote cluster")
 	summariseCmd.Flags().BoolVarP(&showLabels, "show-labels", "l", false, "Show labels associated with the resource")
+	summariseCmd.Flags().BoolVarP(&groupByLabel, "group-by-label", "", false, "Group output by label")
 	summariseCmd.Flags().StringVarP(&namespace, "namespace", "n", "", "Show resources from only this namespace")
 }
 
@@ -455,6 +489,11 @@ func MakeResourceInformation(b []byte, fileName string) (*utils.ResourceInfo, er
 			}
 			if namespace, ok := metMap["namespace"]; ok {
 				r.Namespace = namespace.(string)
+			}
+			if labels, ok := metMap["labels"]; ok {
+				if typed, ok := labels.(map[string]string); ok {
+					r.Labels = typed
+				}
 			}
 		}
 	}
