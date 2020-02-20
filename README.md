@@ -20,6 +20,9 @@ You can use this tool to switch your current context to any context made availab
 
 <img src="screenshots/workon_example_run.png" alt="drawing" width="650"/>
 
+#### Is there a benefit of this tool over `kubens` + `kubectx`?
+`k8s workon` is similar to `kubectx`/`kubens` in that you can switch namespaces and contexts smoothly, but you also know exactly which contexts are available to switch between. And for each context, you are given a list of valid namespace choices, so you can't ever make a choice that doesn't make sense.
+
 ## `k8sutil summarise`
 ### Summarise remote or local kubernetes resource information
 If you want to inspect the contents of a single yaml file or even a directory of yaml files without every actually opening them, use this tool to get easily readable coloured output with name, namespace, and kind information for each resource. Here's an example of a basic invocation of the command.
@@ -30,11 +33,16 @@ You can also filter by kind or namespace (`--kind`, `--namespace`), group by kin
 
 <img src="screenshots/summarise_group_by_kind.png" alt="drawing" width="500"/>
 
-<img src="screenshots/summarise_kind.png" alt="drawing" width="500"/>
+<img src="screenshots/summarise_kind_labels.png" alt="drawing" width="500"/>
+
+<img src="screenshots/summarise_filepath_local.png" alt="drawing" width="500"/>
 
 Otherwise, there's also the option to scan your cluster for resources with `--remote`.
 
 <img src="screenshots/summarise_remote.png" alt="drawing" width="500"/>
+
+#### Why not just use `kubectl get`?
+`k8sutil summarise` is unlike `kubectl get` in that you won't need to necessarily specify a resource type to get (eg pod). By default, resources of any kind will be fetched. This way, you can view resources of any type within a namespace, or resources of any type in any namespace. You aren't forced to filter by type or namespace. The kubernetes API is built around the concept of segmenting resources by type and by namespace, so believe me, implementing this involved a lot of gross metaprogramming. Kubernetes never wanted this tool to be made, but here it is 🙃
 
 ## `k8sutil lint`
 ### Lint YAML kubernetes resources for security vulnerabilities
@@ -49,11 +57,17 @@ You can also get the tool to attempt to apply the fixes itself, instead doing it
 
 If you're interested, here's [more detailed information](utils/linter_usage.md) on how to use the tool.
 
+#### Why this and not kube-score?
+[kube-score](https://github.com/zegl/kube-score) is probably the most similar tool to `k8sutil lint` out there. What is most notable that I haven't seen replicated elsewhere is the possibility to automatically fix issues with the resource configurations so that easy fixes don't have to be performed by hand. I also think this tool is more open to extension since each rule is implemented declaratively rather than procedurally, and there is hope that in the future, client-specific kubernetes linting rules can easily be implemented by the client herself. Fingers crossed!
+
 ## `show-dependencies`
 ### Show Dependencies implied by YAML Kubernetes Resources
 Sometimes a resource definition contains a reference to another kubernetes resource, implying that you think the other resource actually exists at all. This tool gives you a basic summary of the assumptions that your kubernetes resources are making. This way, you can ensure that those assumptions are met before you go ahead and apply to the cluster. See the [source ](utils/analyse_dependencies.go) for all the assumptions that are reported for each resource type.
 
 <img src="screenshots/show_dependencies.png" alt="drawing" width="600"/>
+
+#### Why use this? 
+If you are interested in getting some level of static validation of your kubernetes object definitions locally before you apply to the cluster, this could be a nice helper. In general, I love tools that help you validate your code before you run it, and if you do too, I recommend this. It'll be much easier to catch typos that could end up leading to unexpected behaviour at the cluster level.
 
 ### TODO (Future Work)
 - The utils package is kind of a mess, want to make subdirectories based on each subcommand?
