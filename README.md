@@ -1,5 +1,5 @@
-# k8sutil
-This is a command line tool with subcommands for creating and interpreting kubernetes objects.
+# 🤠 k8sutil
+This is a kubernetes CLI with tools for viewing your config, switching context and namespace, listing resources, and linting resource declarations for security vulnerabilities.
 
 ## How to use
 1. Clone this repo
