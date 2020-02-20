@@ -26,13 +26,13 @@ If you want to inspect the contents of a single yaml file or even a directory of
 
 <img src="screenshots/summarise_example_basic.png" alt="drawing" width="500"/>
 
-You can also group the resources by kind (`--group-by-kind`), show the filepath from which the resource originated (`--show-filepath`), and filter by kind (`--kind`).
+You can also filter by kind or namespace (`--kind`, `--namespace`), group by kind or label key (`--group-by-label`, `--group-by-kind`), and show the filepath from which the resource originated if you're scanning local resource configurations.
 
 <img src="screenshots/summarise_group_by_kind.png" alt="drawing" width="500"/>
 
 <img src="screenshots/summarise_kind.png" alt="drawing" width="500"/>
 
-You can also fetch resources in the cluster with `--remote`. For this, you need to specify a namespace. All the resources within that namespace will be displayed.
+Otherwise, there's also the option to scan your cluster for resources with `--remote`.
 
 <img src="screenshots/summarise_remote.png" alt="drawing" width="500"/>
 
