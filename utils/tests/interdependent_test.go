@@ -3,8 +3,7 @@ package tests
 import (
 	"testing"
 
-	"github.com/rdowavic/k8sutil/utils"
-	lint "github.com/rdowavic/k8sutil/utils/lint"
+	lint "github.com/CoverGenius/k8sutil/utils/lint"
 	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
 	networkingV1 "k8s.io/api/networking/v1"

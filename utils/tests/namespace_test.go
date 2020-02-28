@@ -1,7 +1,7 @@
 package tests
 
 import (
-	lint "github.com/rdowavic/k8sutil/utils/lint"
+	lint "github.com/CoverGenius/k8sutil/utils/lint"
 	v1 "k8s.io/api/core/v1"
 	"testing"
 )

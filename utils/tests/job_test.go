@@ -1,10 +1,10 @@
 package tests
 
 import (
-	"github.com/rdowavic/k8sutil/utils"
-	lint "github.com/rdowavic/k8sutil/utils/lint"
-	batchV1 "k8s.io/api/batch/v1"
 	"testing"
+
+	lint "github.com/CoverGenius/k8sutil/utils/lint"
+	batchV1 "k8s.io/api/batch/v1"
 )
 
 func TestJobWithinNamespace(t *testing.T) {

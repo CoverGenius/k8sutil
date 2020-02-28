@@ -1,12 +1,14 @@
 package tests
 
 import (
-	batchV1beta1 "k8s.io/api/batch/v1beta1"
 	"testing"
+
+	"github.com/CoverGenius/k8sutil/utils/lint"
+	batchV1beta1 "k8s.io/api/batch/v1beta1"
 )
 
 func TestCronjobWithinNamespace(t *testing.T) {
-	resource := utils.AttachMetaData(cronJobYaml, "FAKEFILE.yaml")[0]
+	resource := lint.AttachMetaData(cronJobYaml, "FAKEFILE.yaml")[0]
 	rule := CreateTestMap(lint.CronJobRules(resource))[lint.CRONJOB_WITHIN_NAMESPACE]
 	if !rule.Condition() {
 		t.Errorf("Cronjob was within namespace but CRONJOB_WITHIN_NAMESPACE did not pass")
@@ -19,7 +21,7 @@ func TestCronjobWithinNamespace(t *testing.T) {
 }
 
 func TestCronjobForbidConcurrent(t *testing.T) {
-	resource := service.AttachMetaData(cronJobYaml, "FAKEFILE.yaml")[0]
+	resource := lint.AttachMetaData(cronJobYaml, "FAKEFILE.yaml")[0]
 	rule := CreateTestMap(lint.CronJobRules(resource))[lint.CRONJOB_FORBID_CONCURRENT]
 	cronJob := resource.Resource.(*batchV1beta1.CronJob)
 	if !rule.Condition() {

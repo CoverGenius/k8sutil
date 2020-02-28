@@ -1,4 +1,4 @@
-module github.com/rdowavic/k8sutil
+module github.com/CoverGenius/k8sutil
 
 go 1.13
 

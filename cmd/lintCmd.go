@@ -11,7 +11,7 @@ import (
 
 	"github.com/fatih/color"
 	multierror "github.com/hashicorp/go-multierror"
-	"github.com/rdowavic/k8sutil/utils/lint"
+	"github.com/CoverGenius/k8sutil/utils/lint"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"k8s.io/apimachinery/pkg/runtime"

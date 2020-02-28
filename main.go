@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	"github.com/rdowavic/k8sutil/cmd"
+	"github.com/CoverGenius/k8sutil/cmd"
 	"github.com/spf13/pflag"
 	"os"
 	"strings"
