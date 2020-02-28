@@ -2,7 +2,7 @@ package tests
 
 import (
 	"bytes"
-	"github.com/rdowavic/k8sutil/utils/lint"
+	"github.com/CoverGenius/k8sutil/utils/lint"
 )
 
 func CreateTestMap(rules []*lint.Rule) map[lint.RuleID]*lint.Rule {

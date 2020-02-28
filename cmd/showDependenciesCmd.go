@@ -6,8 +6,8 @@ import (
 	"io/ioutil"
 	"os"
 
-	"github.com/rdowavic/k8sutil/utils"
-	"github.com/rdowavic/k8sutil/utils/lint"
+	"github.com/CoverGenius/k8sutil/utils"
+	"github.com/CoverGenius/k8sutil/utils/lint"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	meta "k8s.io/apimachinery/pkg/api/meta"
