@@ -3,31 +3,29 @@ package cmd
 import (
 	"bytes"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"regexp"
 	"strings"
 
+	"github.com/CoverGenius/kubelint"
 	"github.com/fatih/color"
 	multierror "github.com/hashicorp/go-multierror"
-	"github.com/CoverGenius/k8sutil/utils/lint"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer/json"
-	"k8s.io/client-go/kubernetes/scheme"
 )
 
 var (
-	directories        = []string{}
-	standaloneLintMode bool
-	fix                bool
-	outPath            string
-	report             bool
+	Directories        = []string{}
+	StandaloneLintMode bool
+	Fix                bool
+	OutPath            string
+	Report             bool
 )
 
-var lintCmd = &cobra.Command{
+var newLintCmd = &cobra.Command{
 	Use:   "lint <file>*",
 	Short: "Lint YAML file(s) against a set of predefined kubernetes best practices",
 	Run: func(cmd *cobra.Command, args []string) {
@@ -42,113 +40,102 @@ var lintCmd = &cobra.Command{
 			fmt.Println(cmd.Usage())
 			os.Exit(1)
 		}
-
-		var yamlObjects []*lint.YamlDerivedKubernetesResource
-		if len(args) == 0 || args[0] != "-" {
-			files, err := AggregateFiles(args, directories)
-			if err != nil {
-				log.Fatal(err)
-			}
-
-			// for each file, we get the buffer so that we can process it through the attach-metadata and validate stages.
-			for _, yamlFileName := range files {
-				// file -> bytes array
-				yamlFilePath, _ := filepath.Abs(yamlFileName)
-				yamlContent, err := ioutil.ReadFile(yamlFilePath)
-				if err != nil {
-					log.Fatal(err)
-				}
-				// bytes array -> bytes.Buffer
-				buffer := bytes.NewBuffer(yamlContent)
-				lint.KubevalLint(buffer, filepath.Base(yamlFileName))
-				// get all the yaml derived kubernetes objects out
-				// and store it in a slice
-				yamlObjects = append(yamlObjects, lint.AttachMetaData(buffer, yamlFilePath)...)
-			}
-		} else {
-			var data []byte
-			data, err := ioutil.ReadAll(os.Stdin)
-			if err != nil {
-				log.Fatal(err)
-			}
-			buffer := bytes.NewBuffer(data)
-			lint.KubevalLint(buffer, filepath.Base("stdin"))
-			yamlObjects = append(yamlObjects, lint.AttachMetaData(buffer, filepath.Base("stdin"))...)
+		// Prepare the linter.
+		linter := kubelint.NewDefaultLinter()
+		linter.AddAppsV1DeploymentRule(
+			kubelint.APPSV1_DEPLOYMENT_EXISTS_PROJECT_LABEL,
+			kubelint.APPSV1_DEPLOYMENT_EXISTS_APP_K8S_LABEL,
+			kubelint.APPSV1_DEPLOYMENT_WITHIN_NAMESPACE,
+			kubelint.APPSV1_DEPLOYMENT_CONTAINER_EXISTS_LIVENESS,
+			kubelint.APPSV1_DEPLOYMENT_CONTAINER_EXISTS_LIVENESS,
+			kubelint.APPSV1_DEPLOYMENT_LIVENESS_READINESS_NONMATCHING,
+		)
+		linter.AddV1PodSpecRule(
+			kubelint.V1_PODSPEC_NON_NIL_SECURITY_CONTEXT,
+			kubelint.V1_PODSPEC_RUN_AS_NON_ROOT,
+			kubelint.V1_PODSPEC_CORRECT_USER_GROUP_ID,
+			kubelint.V1_PODSPEC_EXACTLY_1_CONTAINER,
+			kubelint.V1_PODSPEC_NON_ZERO_CONTAINERS,
+		)
+		linter.AddV1ContainerRule(
+			kubelint.V1_CONTAINER_EXISTS_SECURITY_CONTEXT,
+			kubelint.V1_CONTAINER_ALLOW_PRIVILEGE_ESCALATION_FALSE,
+			kubelint.V1_CONTAINER_VALID_IMAGE,
+			kubelint.V1_CONTAINER_PRIVILEGED_FALSE,
+			kubelint.V1_CONTAINER_EXISTS_RESOURCE_LIMITS_AND_REQUESTS,
+			kubelint.V1_CONTAINER_REQUESTS_CPU_REASONABLE,
+		)
+		linter.AddBatchV1Beta1CronJobRule(
+			kubelint.BATCHV1_BETA1_CRONJOB_WITHIN_NAMESPACE,
+			kubelint.BATCHV1_BETA1_CRONJOB_FORBID_CONCURRENT,
+		)
+		linter.AddBatchV1JobRule(
+			kubelint.BATCHV1_JOB_WITHIN_NAMESPACE,
+			kubelint.BATCHV1_JOB_RESTART_NEVER,
+			kubelint.BATCHV1_JOB_EXISTS_TTL,
+		)
+		linter.AddV1NamespaceRule(
+			kubelint.V1_NAMESPACE_VALID_DNS,
+		)
+		linter.AddV1ServiceRule(
+			kubelint.V1_SERVICE_NAME_VALID_DNS,
+			kubelint.V1_SERVICE_WITHIN_NAMESPACE,
+			kubelint.V1_SERVICE_NAME_VALID_DNS,
+		)
+		// finished preparing the linter
+		var results []*kubelint.Result
+		var errs []error
+		if len(args) == 1 && args[0] == "-" {
+			r, e := linter.LintFile(os.Stdin)
+			results = append(results, r...)
+			errs = append(errs, e...)
 		}
-		outPathIsDirectory := false
-		// check for now whether this metadata attaching is working correctly (just verify by hand)
-		exitCode := lint.Lint(yamlObjects, standaloneLintMode, fix)
-		if fix {
-			s := json.NewYAMLSerializer(json.DefaultMetaFactory, scheme.Scheme, scheme.Scheme)
-			var f *os.File = os.Stdout
-			var err error
-			if outPath != "" {
-				if filepath.Ext(outPath) == ".yaml" || filepath.Ext(outPath) == ".yml" {
-					filePath, err := filepath.Abs(outPath)
-					if err != nil {
-						log.Fatal(err)
-					}
-					f, err = os.OpenFile(filePath, os.O_WRONLY|os.O_CREATE, 0666)
-					if err != nil {
-						log.Fatal(err)
-					}
-				} else {
-					// assume it's a directory and on every iteration of the loop, try to make a .fixed version of it.
-					outPathIsDirectory = true
-				}
-			}
-			// use yamlObjects..
-			for i, resource := range yamlObjects {
-				if outPathIsDirectory {
-					outPath, err = filepath.Abs(outPath)
-					if err != nil {
-						log.Fatal(err)
-					}
-					fileName := nameFixed(filepath.Base(resource.FilePath))
-					// check if file al:ready exists. if so, open it in append mode and write a ---\n to it.
-					filePath := filepath.Join(outPath, fileName)
-					if _, err := os.Stat(filePath); err == nil {
-						f, err = os.OpenFile(filePath, os.O_APPEND|os.O_WRONLY, 0666)
-						f.WriteString("---\n")
-					} else {
-						f, err = os.Create(filePath)
-					}
-					if err != nil {
-						log.Fatal(err)
-					}
-					defer f.Close()
-				}
-				// delete the pesky creationTimeStamp field (this is what StripAndWrite is for)
-				//	err := s.Encode(resource.Resource, f)
-				//	if err != nil {
-				//		log.Fatal(err)
-				//	}
-				yamlBytes, err := StripAndWriteToBytesSlice(s, resource.Resource)
-				if err != nil {
-					log.Fatal(err)
-				}
-				// now write out the bytes
-				_, err = f.Write(yamlBytes)
-				if err != nil {
-					log.Fatal(err)
-				}
-				if !outPathIsDirectory && len(yamlObjects) > 1 && i != (len(yamlObjects)-1) {
-					f.WriteString("---\n")
-				}
-			}
+		filepaths, err := AggregateFiles(args, Directories)
+		if err != nil {
+			log.Fatal(err)
 		}
+		r, e := linter.Lint(filepaths...)
+		results = append(results, r...)
+		errs = append(errs, e...)
+		// Now all our results are in the results array
+		if len(errs) != 0 {
+			for err := range errs {
+				log.Error(err)
+			}
+			os.Exit(1)
+		}
+		logger := log.New()
+		for _, result := range results {
+			logger.WithFields(log.Fields{
+				"line number":   result.Resources[0].LineNumber,
+				"filepath":      result.Resources[0].Filepath,
+				"resource name": result.Resources[0].Resource.Object.GetName(),
+			}).Log(result.Level, result.Message)
+		}
+
 		// write out the report if they want it!
-		if fix && report {
-			ReportFixes()
+		if fix {
+			resources, fixDescriptions := linter.ApplyFixes()
+			byteRepresentation, errs := kubelint.Write(resources...)
+			if len(errs) != 0 {
+				for err := range errs {
+					log.Error(err)
+				}
+				os.Exit(1)
+			}
+			// output to stdout by default
+			fmt.Printf(string(byteRepresentation))
+			if report {
+				ReportFixes(fixDescriptions)
+			}
 		}
-		os.Exit(exitCode)
 	},
 }
 
-func ReportFixes() {
+func ReportFixes(errorFixes []string) {
 	green := color.New(color.FgHiGreen).SprintFunc()
 	fmt.Fprintf(os.Stderr, "=====%s=====\n", bold("FIX SUMMARY"))
-	for _, errorFix := range lint.GetErrorFixes() {
+	for _, errorFix := range errorFixes {
 		fmt.Fprintf(os.Stderr, " %s %s\n", green("✓"), errorFix)
 	}
 }
@@ -179,11 +166,11 @@ func nameFixed(fileName string) string {
 
 func init() {
 	RootCmd.AddCommand(lintCmd)
-	lintCmd.Flags().StringSliceVarP(&directories, "directories", "d", []string{}, "A comma-separated list of directories to recursively search for YAML documents")
-	lintCmd.Flags().BoolVarP(&standaloneLintMode, "standalone-mode", "", false, "Standalone mode - only run lint on the specified resources and skips any dependency checks")
-	lintCmd.Flags().BoolVar(&fix, "fix", false, "apply fixes after identifying errors, where possible")
-	lintCmd.Flags().StringVar(&outPath, "fix-output", "", "output fixed yaml to file or folder instead of stdout")
-	lintCmd.Flags().BoolVar(&report, "fix-report", false, "report the successfully fixed errors")
+	lintCmd.Flags().StringSliceVarP(&Directories, "directories", "d", []string{}, "A comma-separated list of directories to recursively search for YAML documents")
+	lintCmd.Flags().BoolVarP(&StandaloneLintMode, "standalone-mode", "", false, "Standalone mode - only run lint on the specified resources and skips any dependency checks")
+	lintCmd.Flags().BoolVar(&Fix, "fix", false, "apply fixes after identifying errors, where possible")
+	lintCmd.Flags().StringVar(&OutPath, "fix-output", "", "output fixed yaml to file or folder instead of stdout")
+	lintCmd.Flags().BoolVar(&Report, "fix-report", false, "report the successfully fixed errors")
 
 }
 
