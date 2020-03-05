@@ -8,9 +8,9 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/CoverGenius/kubelint"
 	"github.com/fatih/color"
 	multierror "github.com/hashicorp/go-multierror"
+	"github.com/rdowavic/kubelint"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -25,21 +25,22 @@ var (
 	Report             bool
 )
 
-var newLintCmd = &cobra.Command{
+var lintCmd = &cobra.Command{
 	Use:   "lint <file>*",
 	Short: "Lint YAML file(s) against a set of predefined kubernetes best practices",
 	Run: func(cmd *cobra.Command, args []string) {
 		// check that the flags they set make sense
-		if report && !fix {
+		if Report && !Fix {
 			log.Error("You can't request a report without specifying fix mode")
 			fmt.Println(cmd.Usage())
 			os.Exit(1)
 		}
-		if outPath != "" && !fix {
+		if OutPath != "" && !Fix {
 			log.Error("You can't request an output location without specifying fix mode")
 			fmt.Println(cmd.Usage())
 			os.Exit(1)
 		}
+		fmt.Println("HELLO, NEW LINTER!!!")
 		// Prepare the linter.
 		linter := kubelint.NewDefaultLinter()
 		linter.AddAppsV1DeploymentRule(
@@ -94,6 +95,7 @@ var newLintCmd = &cobra.Command{
 		if err != nil {
 			log.Fatal(err)
 		}
+		fmt.Printf("%#v\n", filepaths)
 		r, e := linter.Lint(filepaths...)
 		results = append(results, r...)
 		errs = append(errs, e...)
@@ -105,6 +107,8 @@ var newLintCmd = &cobra.Command{
 			os.Exit(1)
 		}
 		logger := log.New()
+		logger.SetOutput(os.Stdout)
+		fmt.Println(len(results))
 		for _, result := range results {
 			logger.WithFields(log.Fields{
 				"line number":   result.Resources[0].LineNumber,
@@ -114,7 +118,7 @@ var newLintCmd = &cobra.Command{
 		}
 
 		// write out the report if they want it!
-		if fix {
+		if Fix {
 			resources, fixDescriptions := linter.ApplyFixes()
 			byteRepresentation, errs := kubelint.Write(resources...)
 			if len(errs) != 0 {
@@ -125,7 +129,7 @@ var newLintCmd = &cobra.Command{
 			}
 			// output to stdout by default
 			fmt.Printf(string(byteRepresentation))
-			if report {
+			if Report {
 				ReportFixes(fixDescriptions)
 			}
 		}
