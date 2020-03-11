@@ -10,7 +10,7 @@ import (
 
 	"github.com/fatih/color"
 	multierror "github.com/hashicorp/go-multierror"
-	"github.com/rdowavic/kubelint"
+	kubelint "github.com/rdowavic/kubelint-1"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -40,15 +40,17 @@ var lintCmd = &cobra.Command{
 			fmt.Println(cmd.Usage())
 			os.Exit(1)
 		}
-		fmt.Println("HELLO, NEW LINTER!!!")
 		// Prepare the linter.
-		linter := kubelint.NewDefaultLinter()
+		l := log.New()
+		// l.SetLevel(log.DebugLevel)
+		l.SetOutput(os.Stdout)
+		linter := kubelint.NewLinter(l)
 		linter.AddAppsV1DeploymentRule(
 			kubelint.APPSV1_DEPLOYMENT_EXISTS_PROJECT_LABEL,
 			kubelint.APPSV1_DEPLOYMENT_EXISTS_APP_K8S_LABEL,
 			kubelint.APPSV1_DEPLOYMENT_WITHIN_NAMESPACE,
 			kubelint.APPSV1_DEPLOYMENT_CONTAINER_EXISTS_LIVENESS,
-			kubelint.APPSV1_DEPLOYMENT_CONTAINER_EXISTS_LIVENESS,
+			kubelint.APPSV1_DEPLOYMENT_CONTAINER_EXISTS_READINESS,
 			kubelint.APPSV1_DEPLOYMENT_LIVENESS_READINESS_NONMATCHING,
 		)
 		linter.AddV1PodSpecRule(
@@ -95,25 +97,21 @@ var lintCmd = &cobra.Command{
 		if err != nil {
 			log.Fatal(err)
 		}
-		fmt.Printf("%#v\n", filepaths)
 		r, e := linter.Lint(filepaths...)
 		results = append(results, r...)
 		errs = append(errs, e...)
 		// Now all our results are in the results array
-		if len(errs) != 0 {
-			for err := range errs {
-				log.Error(err)
-			}
-			os.Exit(1)
+		for _, err := range errs {
+			log.Error(err)
 		}
 		logger := log.New()
 		logger.SetOutput(os.Stdout)
-		fmt.Println(len(results))
 		for _, result := range results {
 			logger.WithFields(log.Fields{
 				"line number":   result.Resources[0].LineNumber,
 				"filepath":      result.Resources[0].Filepath,
 				"resource name": result.Resources[0].Resource.Object.GetName(),
+				"resource type": result.Resources[0].Resource.TypeInfo.GetKind(),
 			}).Log(result.Level, result.Message)
 		}
 
