@@ -42,8 +42,7 @@ var lintCmd = &cobra.Command{
 		}
 		// Prepare the linter.
 		l := log.New()
-		// l.SetLevel(log.DebugLevel)
-		l.SetOutput(os.Stdout)
+		l.SetLevel(log.DebugLevel)
 		linter := kubelint.NewLinter(l)
 		linter.AddAppsV1DeploymentRule(
 			kubelint.APPSV1_DEPLOYMENT_EXISTS_PROJECT_LABEL,
@@ -85,14 +84,17 @@ var lintCmd = &cobra.Command{
 			kubelint.V1_SERVICE_WITHIN_NAMESPACE,
 			kubelint.V1_SERVICE_NAME_VALID_DNS,
 		)
+		if !StandaloneLintMode {
+			linter.AddInterdependentRule(
+				kubelint.INTERDEPENDENT_ONE_NAMESPACE,
+				kubelint.INTERDEPENDENT_MATCHING_NAMESPACE,
+				kubelint.INTERDEPENDENT_NETWORK_POLICY_REQUIRED,
+			)
+		}
+
 		// finished preparing the linter
 		var results []*kubelint.Result
 		var errs []error
-		if len(args) == 1 && args[0] == "-" {
-			r, e := linter.LintFile(os.Stdin)
-			results = append(results, r...)
-			errs = append(errs, e...)
-		}
 		filepaths, err := AggregateFiles(args, Directories)
 		if err != nil {
 			log.Fatal(err)
@@ -105,14 +107,19 @@ var lintCmd = &cobra.Command{
 			log.Error(err)
 		}
 		logger := log.New()
-		logger.SetOutput(os.Stdout)
+		logger.SetOutput(os.Stderr)
 		for _, result := range results {
-			logger.WithFields(log.Fields{
-				"line number":   result.Resources[0].LineNumber,
-				"filepath":      result.Resources[0].Filepath,
-				"resource name": result.Resources[0].Resource.Object.GetName(),
-				"resource type": result.Resources[0].Resource.TypeInfo.GetKind(),
-			}).Log(result.Level, result.Message)
+			if len(result.Resources) == 0 {
+				logger.Log(result.Level, result.Message)
+			}
+			for _, resource := range result.Resources {
+				logger.WithFields(log.Fields{
+					"line number":   resource.LineNumber,
+					"filepath":      resource.Filepath,
+					"resource name": resource.Resource.Object.GetName(),
+					"resource type": resource.Resource.TypeInfo.GetKind(),
+				}).Log(result.Level, result.Message)
+			}
 		}
 
 		// write out the report if they want it!
@@ -126,6 +133,9 @@ var lintCmd = &cobra.Command{
 				os.Exit(1)
 			}
 			// output to stdout by default
+			if len(fixDescriptions) == 0 {
+				logger.Infoln("No fixes could be applied to the YAML resources")
+			}
 			fmt.Printf(string(byteRepresentation))
 			if Report {
 				ReportFixes(fixDescriptions)
@@ -136,9 +146,11 @@ var lintCmd = &cobra.Command{
 
 func ReportFixes(errorFixes []string) {
 	green := color.New(color.FgHiGreen).SprintFunc()
-	fmt.Fprintf(os.Stderr, "=====%s=====\n", bold("FIX SUMMARY"))
+	if len(errorFixes) != 0 {
+		fmt.Fprintf(os.Stderr, "=====%s=====\n", bold("FIX SUMMARY"))
+	}
 	for _, errorFix := range errorFixes {
-		fmt.Fprintf(os.Stderr, " %s %s\n", green("✓"), errorFix)
+		fmt.Fprintf(color.Error, " %s %s\n", green("✓"), errorFix)
 	}
 }
 
