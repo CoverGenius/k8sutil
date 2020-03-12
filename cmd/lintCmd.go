@@ -42,7 +42,6 @@ var lintCmd = &cobra.Command{
 		}
 		// Prepare the linter.
 		l := log.New()
-		l.SetLevel(log.DebugLevel)
 		linter := kubelint.NewLinter(l)
 		linter.AddAppsV1DeploymentRule(
 			kubelint.APPSV1_DEPLOYMENT_EXISTS_PROJECT_LABEL,
