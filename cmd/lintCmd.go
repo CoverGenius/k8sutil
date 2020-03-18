@@ -8,9 +8,9 @@ import (
 	"regexp"
 	"strings"
 
+	kubelint "github.com/CoverGenius/kubelint"
 	"github.com/fatih/color"
 	multierror "github.com/hashicorp/go-multierror"
-	kubelint "github.com/rdowavic/kubelint-1"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"k8s.io/apimachinery/pkg/runtime"

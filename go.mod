@@ -3,6 +3,7 @@ module github.com/CoverGenius/k8sutil
 go 1.13
 
 require (
+	github.com/CoverGenius/kubelint v0.0.0-20200305005400-012e0b1b63f6
 	github.com/fatih/color v1.9.0
 	github.com/hashicorp/go-multierror v1.0.0
 	github.com/imdario/mergo v0.3.8 // indirect
