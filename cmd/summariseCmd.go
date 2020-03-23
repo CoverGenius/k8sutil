@@ -4,10 +4,10 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"github.com/fatih/color"
 	"github.com/CoverGenius/k8sutil/utils"
 	"github.com/CoverGenius/k8sutil/utils/kubeapi"
 	"github.com/CoverGenius/k8sutil/utils/lint"
+	"github.com/fatih/color"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	yaml "gopkg.in/yaml.v2"
@@ -109,7 +109,7 @@ PersistentVolumeClaim:
 			resources = kubeapi.Convert(r)
 		} else {
 			if len(args) == 0 || args[0] != "-" {
-				fileNames, err := AggregateFiles(args, directories)
+				fileNames, err := AggregateFiles(args, Directories)
 				if err != nil {
 					log.Fatal(err)
 				}
@@ -375,7 +375,7 @@ func init() {
 	resourcesGroupedByKind = make(map[string][]*utils.ResourceInfo)
 	resourcesGroupedByLabel = make(map[string][]*utils.ResourceInfo)
 	RootCmd.AddCommand(summariseCmd)
-	summariseCmd.Flags().StringSliceVarP(&directories, "directories", "d", nil, "A comma-separated list of directories to recursively search for YAML documents")
+	summariseCmd.Flags().StringSliceVarP(&Directories, "directories", "d", nil, "A comma-separated list of directories to recursively search for YAML documents")
 	summariseCmd.Flags().BoolVarP(&groupByResourceKind, "group-by-kind", "", false, "Group output by resource kind")
 	summariseCmd.Flags().BoolVarP(&showFilePath, "show-file", "f", false, "Show which file this resource was read from")
 	summariseCmd.Flags().StringVarP(&kind, "kind", "k", "", "Only show resources of a certain kind, eg Deployment.")
