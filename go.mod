@@ -3,13 +3,12 @@ module github.com/CoverGenius/k8sutil
 go 1.13
 
 require (
-	github.com/CoverGenius/kubelint v0.0.0-20200305005400-012e0b1b63f6
+	github.com/CoverGenius/kubelint v0.0.0-20200323031707-cb09910e48a0
 	github.com/fatih/color v1.9.0
 	github.com/hashicorp/go-multierror v1.0.0
 	github.com/imdario/mergo v0.3.8 // indirect
 	github.com/instrumenta/kubeval v0.0.0-20190918223246-8d013ec9fc56
 	github.com/ktr0731/go-fuzzyfinder v0.2.0
-	github.com/rdowavic/kubelint-1 v0.0.0-20200312030746-d4c7ca6479d7
 	github.com/sirupsen/logrus v1.4.2
 	github.com/spf13/cobra v0.0.5
 	github.com/spf13/pflag v1.0.5
