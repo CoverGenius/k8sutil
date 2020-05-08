@@ -49,6 +49,7 @@ var workonCmd = &cobra.Command{
 			}
 			namespaces, err := clientset.CoreV1().Namespaces().List(metav1.ListOptions{})
 			if err != nil {
+				log.Printf("Error querying namespaces with context: %s. Error: %v\n", name, err)
 				// If we get any kind of error, we show the current namespace set in the
 				// context and if one is not, we specfy default
 				var namespace string
