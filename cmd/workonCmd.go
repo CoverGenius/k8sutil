@@ -35,7 +35,7 @@ var workonCmd = &cobra.Command{
 		// for each context that is defined, it specifies a cluster,
 		// and we want to find out all the namespaces under that cluster.
 		// We should be able to retrieve them if the user specified by the context has those permissions.
-		for name := range config.Contexts {
+		for name, c := range config.Contexts {
 			// modify the config object in place
 			// set the current context to the one we're looking at right now
 			config.CurrentContext = name
@@ -49,11 +49,22 @@ var workonCmd = &cobra.Command{
 			}
 			namespaces, err := clientset.CoreV1().Namespaces().List(metav1.ListOptions{})
 			if err != nil {
-				log.Fatal(err)
-			}
-			for _, namespace := range namespaces.Items {
-				// this will be one of the possible selections
-				selections = append(selections, &Selection{Context: name, Namespace: namespace.Name})
+				log.Printf("Error querying namespaces with context: %s. Error: %v\n", name, err)
+				// If we get any kind of error, we show the current namespace set in the
+				// context and if one is not, we specfy default
+				var namespace string
+				if len(c.Namespace) != 0 {
+					namespace = c.Namespace
+				} else {
+					namespace = "default"
+				}
+
+				selections = append(selections, &Selection{Context: name, Namespace: namespace})
+			} else {
+				for _, namespace := range namespaces.Items {
+					// this will be one of the possible selections
+					selections = append(selections, &Selection{Context: name, Namespace: namespace.Name})
+				}
 			}
 		}
 		// by this point, the selections slice is completely instantiated
