@@ -2,10 +2,11 @@ package main
 
 import (
 	"fmt"
-	"github.com/CoverGenius/k8sutil/cmd"
-	"github.com/spf13/pflag"
 	"os"
 	"strings"
+
+	"github.com/CoverGenius/k8sutil/cmd"
+	"github.com/spf13/pflag"
 )
 
 // Function copied from github.com/spf13/cobra

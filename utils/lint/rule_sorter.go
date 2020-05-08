@@ -41,8 +41,8 @@ func NewRuleSorter(rules []*Rule) *RuleSorter {
 	return &RuleSorter{edges: e, rules: r}
 }
 
-func (r *RuleSorter) GetDependentRules(masterId RuleID) []*Rule {
-	ruleIDs := r.getDependents(masterId)
+func (r *RuleSorter) GetDependentRules(masterID RuleID) []*Rule {
+	ruleIDs := r.getDependents(masterID)
 	var rules []*Rule
 	for _, id := range ruleIDs {
 		rules = append(rules, r.rules[id])
@@ -55,11 +55,11 @@ func (r *RuleSorter) GetDependentRules(masterId RuleID) []*Rule {
 *   This implies that those rules' Condition functions are keeping a reference to the same struct.
 * 	Ie, you would never have a rule dependent on another if they are referring to different objects.
 **/
-func (r *RuleSorter) getDependents(masterId RuleID) []RuleID {
+func (r *RuleSorter) getDependents(masterID RuleID) []RuleID {
 	var dependentIDs []RuleID
 	for id := range r.rules {
 		for _, masterRuleID := range r.rules[id].Prereqs {
-			if masterRuleID == masterId {
+			if masterRuleID == masterID {
 				dependentIDs = append(dependentIDs, id)
 				dependentIDs = append(dependentIDs, r.getDependents(id)...)
 			}
@@ -73,8 +73,8 @@ func (r *RuleSorter) getDependents(masterId RuleID) []RuleID {
 * Usually you want to use this when a rule fails, and you would like to avoid executing
 * the rules that depend on this rule's success.
 **/
-func (r *RuleSorter) PopDependentRules(masterId RuleID) []*Rule {
-	dependents := r.GetDependentRules(masterId)
+func (r *RuleSorter) PopDependentRules(masterID RuleID) []*Rule {
+	dependents := r.GetDependentRules(masterID)
 	// now just delete them from the map.
 	for _, rule := range dependents {
 		delete(r.edges, rule.ID)
@@ -97,11 +97,11 @@ func (r *RuleSorter) IsEmpty() bool {
 4. Return the rule
 **/
 func (r *RuleSorter) PopNextAvailable() *Rule {
-	var ruleId RuleID
+	var ruleID RuleID
 	var cycle bool
 	for id, incoming := range r.edges {
 		if incoming == nil || len(incoming) == 0 {
-			ruleId = id
+			ruleID = id
 			cycle = true
 			break
 		}
@@ -112,12 +112,12 @@ func (r *RuleSorter) PopNextAvailable() *Rule {
 		fmt.Printf("%#v\n", r)
 		panic("There is a cycle in your rule dependencies, you can't do it like this")
 	}
-	for _, id := range r.getDependents(ruleId) {
-		// update their edges so that they don't remember ruleId anymore!
-		delete(r.edges[id], ruleId)
+	for _, id := range r.getDependents(ruleID) {
+		// update their edges so that they don't remember ruleID anymore!
+		delete(r.edges[id], ruleID)
 	}
 	// now please forget totally about this ruleID from the edges
-	delete(r.edges, ruleId)
+	delete(r.edges, ruleID)
 	// its map is also gone, (it would have been empty anyways)
-	return r.rules[ruleId]
+	return r.rules[ruleID]
 }

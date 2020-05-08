@@ -1,8 +1,9 @@
 package lint
 
 import (
-	v1 "k8s.io/api/core/v1"
 	"regexp"
+
+	v1 "k8s.io/api/core/v1"
 )
 
 func NamespaceRules(resource *YamlDerivedKubernetesResource) []*Rule {

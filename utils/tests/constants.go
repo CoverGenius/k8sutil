@@ -2,6 +2,7 @@ package tests
 
 import (
 	"bytes"
+
 	"github.com/CoverGenius/k8sutil/utils/lint"
 )
 

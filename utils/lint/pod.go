@@ -58,13 +58,13 @@ func PodRules(podSpec *v1.PodSpec, resource *YamlDerivedKubernetesResource) []*R
 			},
 			Message: "The user and group ID should be set to 44444",
 			Fix: func() bool {
-				userId := int64(44444)
-				groupId := int64(44444)
+				userID := int64(44444)
+				groupID := int64(44444)
 				if podSpec.SecurityContext == nil {
 					podSpec.SecurityContext = &corev1.PodSecurityContext{}
 				}
-				podSpec.SecurityContext.RunAsUser = &userId
-				podSpec.SecurityContext.RunAsGroup = &groupId
+				podSpec.SecurityContext.RunAsUser = &userID
+				podSpec.SecurityContext.RunAsGroup = &groupID
 				return true
 			},
 			Level:          ERROR,

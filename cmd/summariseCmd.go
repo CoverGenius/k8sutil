@@ -130,7 +130,10 @@ PersistentVolumeClaim:
 					log.Fatal(err)
 				}
 			} else {
-				cmd.Usage()
+				err := cmd.Usage()
+				if err != nil {
+					log.Fatal(err)
+				}
 				os.Exit(1)
 			}
 		}
@@ -153,7 +156,6 @@ PersistentVolumeClaim:
 			log.Fatal(msg)
 		}
 		if groupByLabel {
-			sort.Sort(sortableResources(resources))
 			PrintGroupByLabel(resources)
 		} else if groupByResourceKind {
 			PrintGroupByKind(resources)
@@ -194,22 +196,6 @@ func filterByNamespace(namespace string, resources []*utils.ResourceInfo) []*uti
 	return filtered
 }
 
-func aggregateLabels(resources []*utils.ResourceInfo) map[string][]string {
-	m := make(map[string][]string)
-	for _, resource := range resources {
-		if resource.Labels == nil {
-			continue
-		}
-		for label, labelValue := range resource.Labels {
-			if _, exists := m[label]; !exists {
-				m[label] = nil
-			}
-			m[label] = append(m[label], labelValue)
-		}
-	}
-	return m
-}
-
 func PrintLabels(labels map[string][]string) {
 	for label, labelValues := range labels {
 		fmt.Printf("Label %s:\n%v\n", nameStyle(label), labelValues)
@@ -231,6 +217,8 @@ func PrintFilteredByKind(resources []*utils.ResourceInfo, kind string) {
 }
 
 func PrintDefault(resources []*utils.ResourceInfo) {
+	sort.Sort(sortableResources(resources))
+
 	for i, resource := range resources {
 		if resource.Name == "" && resource.Namespace == "" && resource.Kind == "" {
 			fmt.Printf("Resource %d: %s\n\n", i, boldRed("No Information Available"))
@@ -266,7 +254,7 @@ func PrintDefault(resources []*utils.ResourceInfo) {
 
 func PrintGroupByKind(resources []*utils.ResourceInfo) {
 	kindMap := GetResourcesGroupedByKind(resources)
-	keys := make([]string, len(kindMap))
+	var keys []string
 	for k := range kindMap {
 		keys = append(keys, k)
 	}
@@ -295,7 +283,7 @@ func PrintGroupByKind(resources []*utils.ResourceInfo) {
 
 func PrintGroupByLabel(resources []*utils.ResourceInfo) {
 	labelMap := GetResourcesGroupedByLabel(resources)
-	keys := make([]string, len(labelMap))
+	var keys []string
 	for k := range labelMap {
 		keys = append(keys, k)
 	}
