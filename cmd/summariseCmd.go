@@ -4,6 +4,14 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"io/ioutil"
+	"os"
+	"path/filepath"
+	"reflect"
+	"sort"
+	"strconv"
+	"strings"
+
 	"github.com/CoverGenius/k8sutil/utils"
 	"github.com/CoverGenius/k8sutil/utils/kubeapi"
 	"github.com/CoverGenius/k8sutil/utils/lint"
@@ -11,18 +19,12 @@ import (
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	yaml "gopkg.in/yaml.v2"
-	"io/ioutil"
 	meta "k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/tools/clientcmd"
-	"os"
-	"path/filepath"
-	"reflect"
-	"strconv"
-	"strings"
 )
 
 type Colour func(...interface{}) string
@@ -128,7 +130,10 @@ PersistentVolumeClaim:
 					log.Fatal(err)
 				}
 			} else {
-				cmd.Usage()
+				err := cmd.Usage()
+				if err != nil {
+					log.Fatal(err)
+				}
 				os.Exit(1)
 			}
 		}
@@ -160,6 +165,17 @@ PersistentVolumeClaim:
 	},
 }
 
+type sortableResources []*utils.ResourceInfo
+
+func (s sortableResources) Len() int      { return len(s) }
+func (s sortableResources) Swap(i, j int) { s[i], s[j] = s[j], s[i] }
+func (s sortableResources) Less(i, j int) bool {
+	if s[i].Name == s[j].Name {
+		return s[i].Kind < s[j].Kind
+	}
+	return s[i].Name < s[j].Name
+}
+
 func filterByKind(kind string, resources []*utils.ResourceInfo) []*utils.ResourceInfo {
 	var filtered []*utils.ResourceInfo
 	for _, resource := range resources {
@@ -178,22 +194,6 @@ func filterByNamespace(namespace string, resources []*utils.ResourceInfo) []*uti
 		}
 	}
 	return filtered
-}
-
-func aggregateLabels(resources []*utils.ResourceInfo) map[string][]string {
-	m := make(map[string][]string)
-	for _, resource := range resources {
-		if resource.Labels == nil {
-			continue
-		}
-		for label, labelValue := range resource.Labels {
-			if _, exists := m[label]; !exists {
-				m[label] = nil
-			}
-			m[label] = append(m[label], labelValue)
-		}
-	}
-	return m
 }
 
 func PrintLabels(labels map[string][]string) {
@@ -217,6 +217,8 @@ func PrintFilteredByKind(resources []*utils.ResourceInfo, kind string) {
 }
 
 func PrintDefault(resources []*utils.ResourceInfo) {
+	sort.Sort(sortableResources(resources))
+
 	for i, resource := range resources {
 		if resource.Name == "" && resource.Namespace == "" && resource.Kind == "" {
 			fmt.Printf("Resource %d: %s\n\n", i, boldRed("No Information Available"))
@@ -251,7 +253,16 @@ func PrintDefault(resources []*utils.ResourceInfo) {
 }
 
 func PrintGroupByKind(resources []*utils.ResourceInfo) {
-	for kind, list := range GetResourcesGroupedByKind(resources) {
+	kindMap := GetResourcesGroupedByKind(resources)
+	var keys []string
+	for k := range kindMap {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+
+	for _, kind := range keys {
+		list := kindMap[kind]
+		sort.Sort(sortableResources(list))
 		if kind == "" {
 			kind = "Missing Kind"
 		}
@@ -272,7 +283,15 @@ func PrintGroupByKind(resources []*utils.ResourceInfo) {
 
 func PrintGroupByLabel(resources []*utils.ResourceInfo) {
 	labelMap := GetResourcesGroupedByLabel(resources)
-	for label, list := range labelMap {
+	var keys []string
+	for k := range labelMap {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+
+	for _, label := range keys {
+		list := labelMap[label]
+		sort.Sort(sortableResources(list))
 		fmt.Printf("%s %s:\n", bold("Label"), bold(label))
 		for _, resource := range list {
 			// new version, similar to group by kind

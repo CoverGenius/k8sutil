@@ -3,6 +3,7 @@ package lint
 // In each file in linter_rules directory, the only thing is just a list of these Rule structs. That's it.
 import (
 	"fmt"
+
 	v1 "k8s.io/api/core/v1"
 )
 

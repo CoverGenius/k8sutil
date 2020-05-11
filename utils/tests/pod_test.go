@@ -1,10 +1,11 @@
 package tests
 
 import (
+	"testing"
+
 	lint "github.com/CoverGenius/k8sutil/utils/lint"
 	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
-	"testing"
 )
 
 func TestPodCorrectNumContainers(t *testing.T) {

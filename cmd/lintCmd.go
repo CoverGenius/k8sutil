@@ -135,7 +135,7 @@ var lintCmd = &cobra.Command{
 			if len(fixDescriptions) == 0 {
 				logger.Infoln("No fixes could be applied to the YAML resources")
 			}
-			fmt.Printf(string(byteRepresentation))
+			fmt.Print(string(byteRepresentation))
 			if Report {
 				ReportFixes(fixDescriptions)
 			}

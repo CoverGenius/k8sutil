@@ -1,10 +1,11 @@
 package tests
 
 import (
+	"testing"
+
 	lint "github.com/CoverGenius/k8sutil/utils/lint"
 	appsv1 "k8s.io/api/apps/v1"
 	rsc "k8s.io/apimachinery/pkg/api/resource"
-	"testing"
 	// v1 "k8s.io/api/core/v1"
 )
 

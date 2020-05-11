@@ -1,9 +1,10 @@
 package tests
 
 import (
+	"testing"
+
 	lint "github.com/CoverGenius/k8sutil/utils/lint"
 	v1 "k8s.io/api/core/v1"
-	"testing"
 )
 
 func TestNamespaceValidDNS(t *testing.T) {
